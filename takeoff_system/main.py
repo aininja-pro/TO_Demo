@@ -23,7 +23,10 @@ from .symbol_counter import count_symbols_with_claude, count_demo_items_deep, co
 from .schedule_reader import read_fixture_schedule, read_panel_schedule
 from .pdf_extractor import (
     extract_fixture_counts, extract_floor_plan_data,
-    extract_conduit_lengths, extract_schedule_tables
+    extract_conduit_lengths, extract_schedule_tables,
+    extract_all_from_pdf, extract_all_to_device_counts,
+    extract_controls, extract_power_devices, extract_demo_items,
+    extract_technology, extract_panel_breakers
 )
 from .routing_analyzer import analyze_routing_complete, manual_conduit_input
 from .business_rules import derive_all_materials, derive_materials_with_schedules
@@ -145,18 +148,43 @@ class TakeOffSystem:
         new_counts = DeviceCounts()
         demo_counts = DeviceCounts()
 
-        # Process NEW sheets
+        # Use complete PDF extraction if enabled and PDF path is available
+        if use_pdf_extraction and self.pdf_path:
+            print("  Using PDF text extraction for all sheets...")
+            try:
+                results = extract_all_from_pdf(self.pdf_path)
+
+                # Populate new_counts from extraction results
+                new_counts.fixtures = results.get('fixtures', {})
+                new_counts.controls = results.get('controls', {})
+                new_counts.power = results.get('power', {})
+                new_counts.technology = results.get('technology', {})
+
+                # Populate demo_counts
+                demo_counts.demo = results.get('demo', {})
+
+                # Add panel data to power
+                panel = results.get('panel', {})
+                for item, count in panel.items():
+                    new_counts.power[item] = count
+
+                self.device_counts = new_counts
+                self.demo_counts = demo_counts
+
+                return new_counts, demo_counts
+
+            except Exception as e:
+                print(f"    Warning: PDF extraction failed: {e}")
+                print("    Falling back to vision-based extraction...")
+
+        # Fallback to vision-based extraction
         new_sheets = get_sheets_by_type(self.sheets, SheetType.NEW)
-        print(f"  Processing {len(new_sheets)} NEW sheets...")
+        print(f"  Processing {len(new_sheets)} NEW sheets with vision...")
 
         for sheet in new_sheets:
             print(f"    {sheet.sheet_number}: {sheet.title}...")
             try:
-                if use_pdf_extraction and sheet.sheet_number in ("E200", "E201"):
-                    # Use PDF text extraction for floor plans (higher accuracy)
-                    counts = self._count_with_pdf_extraction(sheet)
-                elif sheet.sheet_number == "E200":
-                    # Fallback: E200 has small fixture tags - use floor-level cropping
+                if sheet.sheet_number == "E200":
                     counts = count_by_floor_crop(
                         sheet.image_path,
                         sheet.sheet_type,
@@ -177,14 +205,13 @@ class TakeOffSystem:
             except Exception as e:
                 print(f"      Error: {e}")
 
-        # Process DEMO sheets - also use scope filter
+        # Process DEMO sheets
         demo_sheets = get_sheets_by_type(self.sheets, SheetType.DEMO)
         print(f"  Processing {len(demo_sheets)} DEMO sheets...")
 
         for sheet in demo_sheets:
             print(f"    {sheet.sheet_number}: {sheet.title}...")
             try:
-                # Use single scope call instead of deep counting all levels
                 counts = count_symbols_with_claude(
                     sheet.image_path,
                     sheet.sheet_type,
