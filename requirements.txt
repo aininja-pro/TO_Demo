@@ -1,0 +1,12 @@
+# MEP TakeOff System Requirements
+
+# Core dependencies
+anthropic>=0.39.0          # Claude API client
+Pillow>=10.0.0             # Image processing
+pdf2image>=1.16.0          # PDF to image conversion
+
+# Note: pdf2image requires poppler-utils
+# Install with:
+#   macOS: brew install poppler
+#   Ubuntu: apt install poppler-utils
+#   Windows: Download from https://github.com/oschwartz10612/poppler-windows/releases
