@@ -409,6 +409,108 @@ def derive_support_hardware(
 
 
 # =============================================================================
+# LARGE FEEDER WIRE DERIVATION
+# =============================================================================
+
+def derive_large_feeder_wire(
+    large_disconnects: int,
+    feeder_run_ft: int = 50
+) -> Dict[str, int]:
+    """
+    Calculate large feeder wire (#3 THHN) for major equipment.
+
+    Calibrated from IVCC CETLA project:
+    - 100A+ disconnects need #3 THHN wire
+    - Typical run: 50 ft × 3 conductors (3-phase)
+
+    Args:
+        large_disconnects: Count of 100A+ safety switches/disconnects
+        feeder_run_ft: Average feeder run length (default 50 ft)
+
+    Returns:
+        Dict with #3 THHN wire quantity
+    """
+    # 3-phase feeders need 3 conductors
+    conductors = 3
+    wire_length = large_disconnects * feeder_run_ft * conductors
+
+    result = {}
+    if wire_length > 0:
+        result["#3 THHN"] = wire_length
+
+    return result
+
+
+# =============================================================================
+# MECHANICAL CONNECTIONS (User Input Driven)
+# =============================================================================
+
+def derive_mechanical_connections(
+    mechanical_equipment_count: int = 0
+) -> Dict[str, int]:
+    """
+    Calculate flex conduit and fittings for mechanical equipment.
+
+    Mechanical equipment (HVAC, motors, pumps) requires flexible conduit
+    connections. This is typically NOT on electrical plans - requires
+    user input or coordination with mechanical drawings.
+
+    Calibrated from IVCC CETLA project:
+    - Steel Flex: 1 per mechanical connection
+    - Liquidtight: 1 per mechanical connection
+    - LT Flex Connector: 0.67 per connection (2 ends, some shared)
+    - Wire Termination Labor: 1 per connection
+
+    Args:
+        mechanical_equipment_count: Number of mechanical equipment connections
+                                   (HVAC units, motors, exhaust fans, etc.)
+
+    Returns:
+        Dict of flex conduit and related items
+    """
+    if mechanical_equipment_count <= 0:
+        return {}
+
+    # Connectors: 2 per liquidtight run, but some share junction boxes
+    lt_connectors = int(mechanical_equipment_count * 0.67)
+
+    return {
+        "3/4\" Steel Flex": mechanical_equipment_count,
+        "3/4\" Liquidtight": mechanical_equipment_count,
+        "3/4\" 90D LT Flex Conn": lt_connectors,
+        "Wire Termination Labor": mechanical_equipment_count,
+    }
+
+
+# =============================================================================
+# MISC LABOR ITEMS
+# =============================================================================
+
+def derive_misc_labor(
+    floor_count: int,
+    largest_pendant_count: int
+) -> Dict[str, int]:
+    """
+    Calculate miscellaneous labor items.
+
+    Calibrated from IVCC CETLA project:
+    - Core Existing Floor: 1 per floor (riser penetrations)
+    - Channel Cutting Labor: 4 cuts per largest pendant type
+
+    Args:
+        floor_count: Number of floors in building
+        largest_pendant_count: Count of largest pendant fixture type
+
+    Returns:
+        Dict of misc labor items
+    """
+    return {
+        "Core Existing Floor": floor_count,
+        "Channel Cutting Labor": largest_pendant_count * 4,
+    }
+
+
+# =============================================================================
 # WIRE DERIVATION RULES
 # =============================================================================
 
@@ -463,7 +565,9 @@ def derive_all_materials(
     conduit_lengths: Dict[str, int] = None,
     include_fittings: bool = True,
     include_consumables: bool = True,
-    include_wire: bool = False
+    include_wire: bool = False,
+    floor_count: int = 2,
+    mechanical_equipment_count: int = 0
 ) -> Dict[str, int]:
     """
     Apply all business rules to derive complete supporting materials.
@@ -474,6 +578,8 @@ def derive_all_materials(
         include_fittings: Whether to derive fittings from conduit
         include_consumables: Whether to include consumables
         include_wire: Whether to derive wire quantities
+        floor_count: Number of floors (for core penetrations)
+        mechanical_equipment_count: Number of mechanical connections (HVAC, motors)
 
     Returns:
         Dictionary of derived material quantities
@@ -578,6 +684,36 @@ def derive_all_materials(
         ceiling_sensors, f10_pendant_count, f11_pendant_count
     )
     derived.update(support_hardware)
+
+    # ==========================================================================
+    # LARGE FEEDER WIRE
+    # ==========================================================================
+
+    # Count 100A+ disconnects for #3 THHN
+    large_disconnects = counts.get("100A/3P Safety Switch 600V", 0)
+    if large_disconnects > 0:
+        feeder_wire = derive_large_feeder_wire(large_disconnects)
+        derived.update(feeder_wire)
+
+    # ==========================================================================
+    # MECHANICAL CONNECTIONS (user input driven)
+    # ==========================================================================
+
+    if mechanical_equipment_count > 0:
+        mechanical = derive_mechanical_connections(mechanical_equipment_count)
+        derived.update(mechanical)
+
+    # ==========================================================================
+    # MISC LABOR ITEMS
+    # ==========================================================================
+
+    # Largest pendant for channel cutting calculation
+    largest_pendant_count = counts.get("F11-16X10", 0)
+    if largest_pendant_count == 0:
+        largest_pendant_count = counts.get("F11-10X10", 0)
+
+    misc_labor = derive_misc_labor(floor_count, largest_pendant_count)
+    derived.update(misc_labor)
 
     # ==========================================================================
     # FITTINGS (if conduit data available)

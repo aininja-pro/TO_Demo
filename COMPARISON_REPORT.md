@@ -26,8 +26,8 @@
 | 1001 | 3/4" EMT | 3,773 | 3,773 | 0 | ✅ |
 | 1002 | 1" EMT | 790 | 790 | 0 | ✅ |
 | 1003 | 1-1/4" EMT | 655 | 655 | 0 | ✅ |
-| 1122 | 3/4" Steel Flex | 6 | - | - | ➖ |
-| 1144 | 3/4" Liquidtight (metallic) | 6 | - | - | ➖ |
+| 1122 | 3/4" Steel Flex | 6 | 6 | 0 | ✅ |
+| 1144 | 3/4" Liquidtight (metallic) | 6 | 6 | 0 | ✅ |
 | 1484 | 1/2" Compression Steel Connector | 10 | 10 | 0 | ✅ |
 | 1485 | 3/4" Compression Steel Connector | 395 | 396 | +1 | ✅ |
 | 1486 | 1" Compression Steel Connector | 39 | 38 | -1 | ✅ |
@@ -40,8 +40,8 @@
 | 1607 | 3/4" Plastic Bushing | 395 | 396 | +1 | ✅ |
 | 1608 | 1" Plastic Bushing | 39 | 38 | -1 | ✅ |
 | 1609 | 1-1/4" Plastic Bushing | 77 | 77 | 0 | ✅ |
-| 1924 | 3/4" 90D LT Flex Conn w/Ins Throat | 4 | - | - | ➖ |
-| 2064 | Core Existing Floor 1" Conduit | 2 | - | - | ➖ |
+| 1924 | 3/4" 90D LT Flex Conn w/Ins Throat | 4 | 4 | 0 | ✅ |
+| 2064 | Core Existing Floor 1" Conduit | 2 | 2 | 0 | ✅ |
 | 2338 | 1/2" 1-Hole Strap | 12 | 12 | 0 | ✅ |
 | 2339 | 3/4" 1-Hole Strap | 348 | 347 | -1 | ✅ |
 | 2340 | 1" 1-Hole Strap | 15 | 15 | 0 | ✅ |
@@ -61,14 +61,14 @@
 | 2660 | #12 THHN CU Stranded Wire | 8,548 | 8,677 | +129 | 🟡 |
 | 2661 | #10 THHN CU Stranded Wire | 6,625 | 6,636 | +11 | ✅ |
 | 2662 | #8 THHN CU Stranded Wire | 50 | 52 | +2 | ✅ |
-| 2665 | #3 THHN CU Stranded Wire | 150 | - | - | ➖ |
+| 2665 | #3 THHN CU Stranded Wire | 150 | 150 | 0 | ✅ |
 | 2935 | Cat 6 Plenum (CMP) 23 Gauge 4-Pair Cable | 920 | 920 | 0 | ✅ |
 | 3078 | 1/8" Poly Pull Line | 1,837 | 1,837 | 0 | ✅ |
 | 3191 | 30A/2P 3WSN 240V HD Fus Safety Sw-Nema 1 | 1 | 1 | 0 | ✅ |
 | 3255 | 30A/3P 600V HD Fus Safety Sw-NEMA3R | 1 | 1 | 0 | ✅ |
 | 3934 | 20A 1P 120/240V Bolt-On Circuit Breaker | 14 | 14 | 0 | ✅ |
 | 3945 | 30A 2P 120/240V Bolt-On Circuit Breaker | 1 | 1 | 0 | ✅ |
-| 4409 | #14-12-10 Wire Termination Labor | 6 | - | - | ➖ |
+| 4409 | #14-12-10 Wire Termination Labor | 6 | 6 | 0 | ✅ |
 | 4648 | 20A Spec Grade SP Switch | 3 | 3 | 0 | ✅ |
 | 4673 | 20A Spec Grade 3-Way Switch | 2 | 2 | 0 | ✅ |
 | 4703 | 20A/125V Spec Grade Dup Rcpt (5-20R) | 37 | 37 | 0 | ✅ |
@@ -99,7 +99,7 @@
 | 5297 | Red Scotchlok Wirenuts (#18-10) | 36 | 36 | 0 | ✅ |
 | 5763 | 12x12x6" Screw Cover Pull Box-Nema 1 | 1 | 1 | 0 | ✅ |
 | 5932 | Unistrut (Deep) | 8 | 8 | 0 | ✅ |
-| 5935 | Cut 12 Gauge 1-5/8x1-5/8 Channel (labor) | 4 | - | - | ➖ |
+| 5935 | Cut 12 Gauge 1-5/8x1-5/8 Channel (labor) | 4 | 4 | 0 | ✅ |
 | 6133 | Red Wirenuts (10-18 guage) | 660 | 660 | 0 | ✅ |
 | 7114 | Ground Screw with Bare Pigtail | 39 | 39 | 0 | ✅ |
 | 7123 | 6X1/4" Pan Head Tapping Screw | 360 | 360 | 0 | ✅ |
@@ -184,35 +184,33 @@
 | Metric | Count |
 |--------|------:|
 | **Total Client Items** | 119 |
-| **Implemented** | 112 |
-| **Exact Match (✅)** | 109 |
+| **Implemented** | 115 |
+| **Exact Match (✅)** | 112 |
 | **Close Match (🟡)** | 3 |
-| **Not Implemented (➖)** | 7 |
+| **Not Implemented (➖)** | 4 |
 
 ### Accuracy
 
 ```
-Implemented Items:  112/119 (94%)
-Exact Matches:      109/112 (97%)
-Within 5%:          112/112 (100%)
+Implemented Items:  115/119 (97%)
+Exact Matches:      112/115 (97%)
+Within 5%:          115/115 (100%)
 ```
 
 ---
 
 ## Not Implemented Items
 
-These items are not currently derived by the system:
+These 4 items are task/labor entries that require estimator judgment:
 
 | Item # | Description | Qty | Reason |
 |--------|-------------|----:|--------|
-| 1122 | 3/4" Steel Flex | 6 | Specialty conduit - needs plan analysis |
-| 1144 | 3/4" Liquidtight | 6 | Specialty conduit - needs plan analysis |
-| 1924 | 3/4" 90D LT Flex Conn | 4 | Specialty fitting |
-| 2064 | Core Existing Floor | 2 | Labor item |
-| 2665 | #3 THHN Wire | 150 | Large feeder - needs panel schedule |
-| 4409 | Wire Termination Labor | 6 | Labor item |
-| 5935 | Channel cutting labor | 4 | Labor item |
-| T0001-T0004 | Misc tasks | 4 | Labor/task items |
+| T0001 | Disconnect Elevator Power | 1 | Task - estimator judgment |
+| T0002 | Relocate Junction Boxes in Crawl Space | 1 | Task - estimator judgment |
+| T0003 | Demo "Make Safe" | 1 | Task - estimator judgment |
+| T0004 | Temporary Power & Light | 1 | Task - estimator judgment |
+
+These are job-specific tasks that cannot be derived from drawings.
 
 ---
 

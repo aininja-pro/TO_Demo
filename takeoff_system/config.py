@@ -63,6 +63,10 @@ class ProjectConfig:
     reference_conduit: Dict[str, int] = field(default_factory=dict)
     conduit_source: str = "estimated"  # "reference" | "estimated"
 
+    # Mechanical equipment connections (HVAC, motors, pumps)
+    # Not on electrical plans - requires user input
+    mechanical_equipment_count: int = 0
+
     # Fixture definitions (auto-read from E600 or manual)
     # Format: {"F2": {"description": "2x4 Recessed", "category": "lay-in"}, ...}
     fixture_definitions: Dict[str, dict] = field(default_factory=dict)
@@ -218,6 +222,7 @@ class ProjectConfig:
             'demo_keynotes': self.demo_keynotes,
             'reference_conduit': self.reference_conduit,
             'conduit_source': self.conduit_source,
+            'mechanical_equipment_count': self.mechanical_equipment_count,
         }
 
         with open(yaml_path, 'w') as f:
@@ -245,6 +250,7 @@ class ProjectConfig:
             'demo_keynotes': self.demo_keynotes,
             'reference_conduit': self.reference_conduit,
             'conduit_source': self.conduit_source,
+            'mechanical_equipment_count': self.mechanical_equipment_count,
         }
 
         with open(json_path, 'w') as f:
@@ -321,4 +327,6 @@ IVCC_CETLA_CONFIG = ProjectConfig(
         '1-1/4"': 655,
     },
     conduit_source="reference",
+    # Mechanical equipment connections (HVAC units, motors, exhaust fans)
+    mechanical_equipment_count=6,
 )
