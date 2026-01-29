@@ -130,7 +130,22 @@ from .ground_truth import (
     get_total_quantity,
 )
 
-__version__ = "1.0.0"
+from .config import (
+    ProjectConfig,
+    create_config_from_pdf,
+    IVCC_CETLA_CONFIG,
+)
+
+from .pdf_extractor import (
+    detect_sheet_pages,
+    extract_demo_items_enhanced,
+    extract_technology_enhanced,
+    parse_fixture_schedule_from_pdf,
+    count_linear_leds_from_floor_plans,
+    count_pendants_from_floor_plans,
+)
+
+__version__ = "1.1.0"  # Enhanced with auto-detection and config
 __all__ = [
     # Main classes
     "TakeOffSystem",
@@ -203,4 +218,15 @@ __all__ = [
     "get_category",
     "get_item_count",
     "get_total_quantity",
+    # Config
+    "ProjectConfig",
+    "create_config_from_pdf",
+    "IVCC_CETLA_CONFIG",
+    # Enhanced extraction
+    "detect_sheet_pages",
+    "extract_demo_items_enhanced",
+    "extract_technology_enhanced",
+    "parse_fixture_schedule_from_pdf",
+    "count_linear_leds_from_floor_plans",
+    "count_pendants_from_floor_plans",
 ]

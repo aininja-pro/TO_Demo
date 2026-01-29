@@ -8,6 +8,11 @@ from electrical construction drawings:
 4. Routing analysis for conduit/wire
 5. Business rules for derived materials
 6. Output generation and validation
+
+Enhanced features:
+- Auto-detection of sheet pages from title blocks
+- Configuration-driven project settings
+- Improved extraction for Linear LEDs, Pendants, Demo, and Technology
 """
 import os
 from pathlib import Path
@@ -18,6 +23,7 @@ from .models import (
     FixtureScheduleData, PanelScheduleData,
     RoutingData, FullTakeoffResult
 )
+from .config import ProjectConfig, create_config_from_pdf
 from .pdf_processor import extract_pages_from_pdf, classify_pages, get_sheets_by_type
 from .symbol_counter import count_symbols_with_claude, count_demo_items_deep, count_by_floor_crop
 from .schedule_reader import read_fixture_schedule, read_panel_schedule
@@ -26,7 +32,9 @@ from .pdf_extractor import (
     extract_conduit_lengths, extract_schedule_tables,
     extract_all_from_pdf, extract_all_to_device_counts,
     extract_controls, extract_power_devices, extract_demo_items,
-    extract_technology, extract_panel_breakers
+    extract_technology, extract_panel_breakers,
+    detect_sheet_pages, extract_demo_items_enhanced,
+    extract_technology_enhanced
 )
 from .routing_analyzer import analyze_routing_complete, manual_conduit_input
 from .business_rules import derive_all_materials, derive_materials_with_schedules
@@ -40,9 +48,16 @@ from .output_generator import (
 class TakeOffSystem:
     """Main class for running the MEP takeoff pipeline."""
 
-    def __init__(self, output_dir: str = None):
-        """Initialize the takeoff system."""
+    def __init__(self, output_dir: str = None, config: ProjectConfig = None):
+        """
+        Initialize the takeoff system.
+
+        Args:
+            output_dir: Directory for output files
+            config: Optional ProjectConfig with project-specific settings
+        """
         self.output_dir = output_dir or "./takeoff_output"
+        self.config = config or ProjectConfig()
         self.sheets: List[Sheet] = []
         self.device_counts = DeviceCounts()
         self.demo_counts = DeviceCounts()
@@ -151,14 +166,25 @@ class TakeOffSystem:
         # Use complete PDF extraction if enabled and PDF path is available
         if use_pdf_extraction and self.pdf_path:
             print("  Using PDF text extraction for all sheets...")
+            print(f"  Config: floor_count={self.config.floor_count}")
             try:
-                results = extract_all_from_pdf(self.pdf_path)
+                # Use config-aware extraction
+                results = extract_all_from_pdf(self.pdf_path, self.config)
 
                 # Populate new_counts from extraction results
                 new_counts.fixtures = results.get('fixtures', {})
                 new_counts.controls = results.get('controls', {})
                 new_counts.power = results.get('power', {})
                 new_counts.technology = results.get('technology', {})
+
+                # Add Linear LEDs and Pendants to fixtures
+                linear_leds = results.get('linear_leds', {})
+                for item, count in linear_leds.items():
+                    new_counts.fixtures[item] = count
+
+                pendants = results.get('pendants', {})
+                for item, count in pendants.items():
+                    new_counts.fixtures[item] = count
 
                 # Populate demo_counts
                 demo_counts.demo = results.get('demo', {})
@@ -389,6 +415,11 @@ class TakeOffSystem:
             include_wire=conduit_lengths is not None
         )
 
+        # Add conduit lengths to derived materials
+        if conduit_lengths:
+            for size, length in conduit_lengths.items():
+                derived[f'{size} EMT'] = length
+
         print(f"    Derived {len(derived)} supporting materials")
         return derived
 
@@ -497,7 +528,9 @@ def run_full_pipeline(
     dpi: int = 300,  # Higher DPI for better tag readability
     use_ai_routing: bool = True,
     building_sqft: int = 10000,
-    use_pdf_extraction: bool = True
+    use_pdf_extraction: bool = True,
+    config_path: str = None,
+    floor_count: int = 2
 ) -> TakeOffSystem:
     """
     Run the complete takeoff pipeline.
@@ -511,20 +544,37 @@ def run_full_pipeline(
         building_sqft: Building size for estimation
         use_pdf_extraction: Whether to use PDF text extraction (faster, more accurate)
                           instead of vision-based counting
+        config_path: Optional path to YAML/JSON config file
+        floor_count: Number of floors (for multi-floor sheet deduplication)
 
     Returns:
         TakeOffSystem instance with all results
     """
     print("=" * 70)
-    print("MEP TAKEOFF SYSTEM - FULL PIPELINE")
+    print("MEP TAKEOFF SYSTEM - FULL PIPELINE (Enhanced)")
     print("=" * 70)
+
+    # Load or create config
+    config = None
+    if config_path:
+        if config_path.endswith('.yaml') or config_path.endswith('.yml'):
+            config = ProjectConfig.from_yaml(config_path)
+        elif config_path.endswith('.json'):
+            config = ProjectConfig.from_json(config_path)
+        print(f"Loaded config from: {config_path}")
+    else:
+        # Create config with auto-detection
+        print("Creating config with auto-detected values...")
+        config = create_config_from_pdf(pdf_path)
+        config.floor_count = floor_count
+        config.building_sqft = building_sqft
 
     if use_pdf_extraction:
         print("Using PDF text extraction (pdfplumber) for improved accuracy")
     else:
         print("Using AI vision-based extraction")
 
-    system = TakeOffSystem(output_dir)
+    system = TakeOffSystem(output_dir, config)
 
     # Step 1: Process PDF
     system.process_pdf(pdf_path, dpi=dpi)
@@ -536,7 +586,7 @@ def run_full_pipeline(
     system.count_all_sheets(api_key, use_pdf_extraction=use_pdf_extraction)
 
     # Step 4: Analyze routing
-    system.analyze_routing(api_key, use_ai_routing, building_sqft)
+    system.analyze_routing(api_key, use_ai_routing, config.building_sqft)
 
     # Step 5: Generate outputs
     system.generate_output("text")
@@ -547,6 +597,14 @@ def run_full_pipeline(
     system.validate_results()
     system.generate_output("accuracy")
 
+    # Save config for future reference
+    config_output = os.path.join(system.output_dir, "project_config.yaml")
+    try:
+        config.to_yaml(config_output)
+        print(f"Config saved to: {config_output}")
+    except Exception as e:
+        print(f"Warning: Could not save config: {e}")
+
     print(f"\nPipeline complete! Output saved to: {system.output_dir}")
 
     return system
@@ -555,7 +613,8 @@ def run_full_pipeline(
 def run_quick_test(
     pdf_path: str,
     output_dir: str = None,
-    api_key: str = None
+    api_key: str = None,
+    floor_count: int = 2
 ) -> TakeOffSystem:
     """
     Run a quick test with minimal processing (no routing analysis).
@@ -564,15 +623,20 @@ def run_quick_test(
         pdf_path: Path to electrical drawings PDF
         output_dir: Directory for output files
         api_key: Anthropic API key
+        floor_count: Number of floors for deduplication
 
     Returns:
         TakeOffSystem instance
     """
     print("=" * 70)
-    print("MEP TAKEOFF SYSTEM - QUICK TEST")
+    print("MEP TAKEOFF SYSTEM - QUICK TEST (Enhanced)")
     print("=" * 70)
 
-    system = TakeOffSystem(output_dir)
+    # Create config with auto-detection
+    config = create_config_from_pdf(pdf_path)
+    config.floor_count = floor_count
+
+    system = TakeOffSystem(output_dir, config)
 
     system.process_pdf(pdf_path, dpi=150)  # Lower DPI for speed
     system.read_schedules(api_key)

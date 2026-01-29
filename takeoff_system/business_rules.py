@@ -76,14 +76,14 @@ def derive_fittings_from_conduit(conduit_lengths: Dict[str, int]) -> Dict[str, i
 
         factor = length / 100
 
-        # Connectors (set screw or compression)
-        fittings[f"{size} EMT Connector"] = int(factor * 10.5)
+        # Connectors (set screw or compression) - naming matches client format
+        fittings[f"{size} Connector"] = int(factor * 10.5)
 
         # Couplings
-        fittings[f"{size} EMT Coupling"] = int(factor * 9.2)
+        fittings[f"{size} Coupling"] = int(factor * 9.2)
 
-        # Insulating bushings (protect wire)
-        fittings[f"{size} Insulating Bushing"] = int(factor * 10.5)
+        # Bushings (protect wire) - naming matches client format
+        fittings[f"{size} Bushing"] = int(factor * 10.5)
 
         # 1-Hole straps (wall/exposed runs)
         fittings[f"{size} 1-Hole Strap"] = int(factor * 9.2)
@@ -103,12 +103,12 @@ def derive_fittings_simplified(total_conduit_feet: int) -> Dict[str, int]:
     factor = total_conduit_feet / 100
 
     return {
-        "3/4\" EMT Connector": int(factor * 10.5 * 0.8),
-        "1\" EMT Connector": int(factor * 10.5 * 0.2),
-        "3/4\" EMT Coupling": int(factor * 9.2 * 0.8),
-        "1\" EMT Coupling": int(factor * 9.2 * 0.2),
-        "3/4\" Insulating Bushing": int(factor * 10.5 * 0.8),
-        "1\" Insulating Bushing": int(factor * 10.5 * 0.2),
+        "3/4\" Connector": int(factor * 10.5 * 0.8),
+        "1\" Connector": int(factor * 10.5 * 0.2),
+        "3/4\" Coupling": int(factor * 9.2 * 0.8),
+        "1\" Coupling": int(factor * 9.2 * 0.2),
+        "3/4\" Bushing": int(factor * 10.5 * 0.8),
+        "1\" Bushing": int(factor * 10.5 * 0.2),
         "3/4\" 1-Hole Strap": int(factor * 9.2 * 0.8),
         "1\" 1-Hole Strap": int(factor * 9.2 * 0.2),
         "3/4\" Unistrut Strap": int(factor * 3.1 * 0.8),
@@ -345,6 +345,8 @@ def derive_wire_from_conduit(
     - 1" conduit: #10 THHN (30A circuits) or multiple #12
     - 1-1/4" conduit: #8 THHN or #6 THHN
     - Larger: Feeder wire per panel schedule
+
+    Output uses aggregated gauge format (e.g., "#12 THHN") to match client format.
     """
     wire = {}
 
@@ -358,17 +360,20 @@ def derive_wire_from_conduit(
 
     total_conduit = sum(conduit_lengths.values())
 
-    # #12 THHN (lighting circuits) - 2.2x multiplier (hot, neutral, ground + waste)
+    # #12 THHN (lighting circuits) - aggregate all colors
+    # Multiplier: 2.2 hot + 1.1 neutral + 1.1 ground = 4.4x conduit length
     lighting_conduit = total_conduit * circuit_info.get("lighting_pct", 0.6)
-    wire["#12 THHN Black"] = int(lighting_conduit * 2.2)
-    wire["#12 THHN White"] = int(lighting_conduit * 1.1)
-    wire["#12 THHN Green"] = int(lighting_conduit * 1.1)
+    wire["#12 THHN"] = int(lighting_conduit * 4.4)
 
-    # #10 THHN (power circuits) - 2.5x multiplier
+    # #10 THHN (power circuits) - aggregate all colors
+    # Multiplier: 2.5 hot + 1.25 neutral + 1.25 ground = 5.0x conduit length
     power_conduit = total_conduit * circuit_info.get("power_pct", 0.3)
-    wire["#10 THHN Black"] = int(power_conduit * 2.5)
-    wire["#10 THHN White"] = int(power_conduit * 1.25)
-    wire["#10 THHN Green"] = int(power_conduit * 1.25)
+    wire["#10 THHN"] = int(power_conduit * 5.0)
+
+    # #8 THHN (feeder circuits) - for larger conduit
+    feeder_conduit = total_conduit * circuit_info.get("feeder_pct", 0.1)
+    if feeder_conduit > 0:
+        wire["#8 THHN"] = int(feeder_conduit * 3.0)  # Feeder typically 3 conductors
 
     return wire
 
