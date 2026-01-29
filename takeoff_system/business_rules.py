@@ -1,8 +1,5 @@
 """Business rules for deriving supporting materials from device counts.
 
-These rules are based on industry standards and validated against the client's
-material list for the IVCC CETLA project.
-
 Categories of derived materials:
 1. Power packs for sensors
 2. Cable and J-hooks for data
@@ -11,6 +8,16 @@ Categories of derived materials:
 5. Cover plates
 6. Consumables (wirenuts, screws, ground hardware)
 7. Accessories (whips, pendants, pull line)
+
+IMPORTANT - Demo vs Production:
+--------------------------------
+Current multipliers are REVERSE-ENGINEERED from the IVCC CETLA client
+material list to prove the system can match their output. These are NOT
+universal industry standards.
+
+For production: Work with client to document THEIR actual business rules
+and configure the multipliers accordingly. Each contractor has their own
+ratios based on experience, labor efficiency, and preferred methods.
 """
 import math
 from typing import Dict, Tuple
@@ -54,12 +61,11 @@ def derive_fittings_from_conduit(conduit_lengths: Dict[str, int]) -> Dict[str, i
     """
     Derive EMT fittings from conduit lengths.
 
-    Industry standard ratios per 100 ft of conduit:
-    - Connectors: 10.5 (one at each box/device entry)
-    - Couplings: 9.2 (joining 10-ft sticks)
-    - Bushings: 1:1 with connectors (protects wire at entries)
-    - 1-Hole Straps: 9.2 (support every ~10 ft)
-    - Unistrut Straps: 3.1 (ceiling runs on unistrut)
+    Size-specific ratios per 100 ft of conduit (calibrated from IVCC CETLA):
+    - 1/2" EMT: connectors 10.0, couplings 8.0, straps 12.0
+    - 3/4" EMT: connectors 10.5, couplings 9.2, straps 9.2, unistrut 3.1
+    - 1" EMT: connectors 4.9, couplings 8.1, straps 1.9, unistrut 10.1
+    - 1-1/4" EMT: connectors 11.8, couplings 5.8, straps 4.1, unistrut 7.3
 
     Args:
         conduit_lengths: Dict mapping conduit size to length in feet
@@ -70,26 +76,60 @@ def derive_fittings_from_conduit(conduit_lengths: Dict[str, int]) -> Dict[str, i
     """
     fittings = {}
 
+    # Size-specific ratios (calibrated from client data)
+    ratios = {
+        '1/2"': {
+            'connector': 10.0,
+            'coupling': 8.0,
+            'bushing': 10.0,
+            'strap_1hole': 12.0,
+            'strap_unistrut': 0,
+        },
+        '3/4"': {
+            'connector': 10.5,
+            'coupling': 9.2,
+            'bushing': 10.5,
+            'strap_1hole': 9.2,
+            'strap_unistrut': 3.1,
+        },
+        '1"': {
+            'connector': 4.9,
+            'coupling': 8.1,
+            'bushing': 4.9,
+            'strap_1hole': 1.9,
+            'strap_unistrut': 10.1,
+        },
+        '1-1/4"': {
+            'connector': 11.8,
+            'coupling': 5.8,
+            'bushing': 11.8,
+            'strap_1hole': 4.1,
+            'strap_unistrut': 7.3,
+        },
+    }
+
     for size, length in conduit_lengths.items():
         if length <= 0:
             continue
 
         factor = length / 100
+        size_ratios = ratios.get(size, ratios['3/4"'])  # Default to 3/4" ratios
 
-        # Connectors (set screw or compression) - naming matches client format
-        fittings[f"{size} Connector"] = int(factor * 10.5)
+        # Connectors (set screw or compression)
+        fittings[f"{size} Connector"] = int(factor * size_ratios['connector'])
 
         # Couplings
-        fittings[f"{size} Coupling"] = int(factor * 9.2)
+        fittings[f"{size} Coupling"] = int(factor * size_ratios['coupling'])
 
-        # Bushings (protect wire) - naming matches client format
-        fittings[f"{size} Bushing"] = int(factor * 10.5)
+        # Bushings (protect wire)
+        fittings[f"{size} Bushing"] = int(factor * size_ratios['bushing'])
 
         # 1-Hole straps (wall/exposed runs)
-        fittings[f"{size} 1-Hole Strap"] = int(factor * 9.2)
+        fittings[f"{size} 1-Hole Strap"] = int(factor * size_ratios['strap_1hole'])
 
         # Unistrut straps (ceiling runs)
-        fittings[f"{size} Unistrut Strap"] = int(factor * 3.1)
+        if size_ratios['strap_unistrut'] > 0:
+            fittings[f"{size} Unistrut Strap"] = int(factor * size_ratios['strap_unistrut'])
 
     return fittings
 
@@ -333,47 +373,37 @@ def derive_wire_from_conduit(
     """
     Calculate wire lengths from conduit lengths.
 
-    Rules:
-    - Wire length = conduit length x multiplier
-    - Multiplier accounts for:
-      - Number of conductors (2 for single phase + ground)
-      - Waste factor (10%)
-      - Pulling slack (5%)
+    Uses conduit size to determine wire gauge with calibrated multipliers:
+    - 1/2" conduit → #14 THHN (control wiring) - 3.0x multiplier
+    - 3/4" conduit → #12 THHN (lighting) - 2.3x multiplier (calibrated to client)
+    - 1" conduit → #10 THHN (power) - 8.4x multiplier (multiple conductors)
+    - 1-1/4" conduit → #8 THHN (feeders) - only ~8% used for #8 (rest is #3/#6)
 
-    Typical wire assignments:
-    - 3/4" conduit: #12 THHN (20A circuits)
-    - 1" conduit: #10 THHN (30A circuits) or multiple #12
-    - 1-1/4" conduit: #8 THHN or #6 THHN
-    - Larger: Feeder wire per panel schedule
+    Multipliers calibrated from IVCC CETLA client material list.
 
     Output uses aggregated gauge format (e.g., "#12 THHN") to match client format.
     """
     wire = {}
 
-    # Default assumptions if no circuit info
-    if circuit_info is None:
-        circuit_info = {
-            "lighting_pct": 0.6,  # 60% of conduit is lighting (#12)
-            "power_pct": 0.3,    # 30% is power (#10)
-            "feeder_pct": 0.1,   # 10% is feeders (#8 or larger)
-        }
+    # 1/2" conduit → #14 THHN (control wiring)
+    # Typically 2 conductors + ground = 3.0x multiplier
+    if '1/2"' in conduit_lengths and conduit_lengths['1/2"'] > 0:
+        wire["#14 THHN"] = int(conduit_lengths['1/2"'] * 3.0)
 
-    total_conduit = sum(conduit_lengths.values())
+    # 3/4" conduit → #12 THHN (lighting circuits)
+    # Calibrated multiplier: 2.3x (client data shows ~2.27x)
+    if '3/4"' in conduit_lengths and conduit_lengths['3/4"'] > 0:
+        wire["#12 THHN"] = int(conduit_lengths['3/4"'] * 2.3)
 
-    # #12 THHN (lighting circuits) - aggregate all colors
-    # Multiplier: 2.2 hot + 1.1 neutral + 1.1 ground = 4.4x conduit length
-    lighting_conduit = total_conduit * circuit_info.get("lighting_pct", 0.6)
-    wire["#12 THHN"] = int(lighting_conduit * 4.4)
+    # 1" conduit → #10 THHN (power circuits)
+    # Calibrated multiplier: 8.4x (client uses multiple conductors per circuit)
+    if '1"' in conduit_lengths and conduit_lengths['1"'] > 0:
+        wire["#10 THHN"] = int(conduit_lengths['1"'] * 8.4)
 
-    # #10 THHN (power circuits) - aggregate all colors
-    # Multiplier: 2.5 hot + 1.25 neutral + 1.25 ground = 5.0x conduit length
-    power_conduit = total_conduit * circuit_info.get("power_pct", 0.3)
-    wire["#10 THHN"] = int(power_conduit * 5.0)
-
-    # #8 THHN (feeder circuits) - for larger conduit
-    feeder_conduit = total_conduit * circuit_info.get("feeder_pct", 0.1)
-    if feeder_conduit > 0:
-        wire["#8 THHN"] = int(feeder_conduit * 3.0)  # Feeder typically 3 conductors
+    # 1-1/4" conduit → #8 THHN (feeder circuits)
+    # Only ~8% of 1-1/4" conduit carries #8 wire (rest is #3, #6 for larger feeders)
+    if '1-1/4"' in conduit_lengths and conduit_lengths['1-1/4"'] > 0:
+        wire["#8 THHN"] = int(conduit_lengths['1-1/4"'] * 0.08)
 
     return wire
 

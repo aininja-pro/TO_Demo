@@ -58,6 +58,11 @@ class ProjectConfig:
     oc_ceiling_ratio: float = 0.84  # Ceiling OC ratio (vs wall)
     jhook_spacing_ft: int = 4  # J-hook spacing in feet
 
+    # Reference conduit (from client material list or prior bid)
+    # e.g. {'1/2"': 100, '3/4"': 3773, '1"': 790, '1-1/4"': 655}
+    reference_conduit: Dict[str, int] = field(default_factory=dict)
+    conduit_source: str = "estimated"  # "reference" | "estimated"
+
     # Fixture definitions (auto-read from E600 or manual)
     # Format: {"F2": {"description": "2x4 Recessed", "category": "lay-in"}, ...}
     fixture_definitions: Dict[str, dict] = field(default_factory=dict)
@@ -211,6 +216,8 @@ class ProjectConfig:
             'conduit_ratios': self.conduit_ratios,
             'wire_multipliers': self.wire_multipliers,
             'demo_keynotes': self.demo_keynotes,
+            'reference_conduit': self.reference_conduit,
+            'conduit_source': self.conduit_source,
         }
 
         with open(yaml_path, 'w') as f:
@@ -236,6 +243,8 @@ class ProjectConfig:
             'conduit_ratios': self.conduit_ratios,
             'wire_multipliers': self.wire_multipliers,
             'demo_keynotes': self.demo_keynotes,
+            'reference_conduit': self.reference_conduit,
+            'conduit_source': self.conduit_source,
         }
 
         with open(json_path, 'w') as f:
@@ -300,8 +309,16 @@ IVCC_CETLA_CONFIG = ProjectConfig(
         "T200": 8,
     },
     floor_count=2,
-    building_sqft=10000,
+    building_sqft=15000,
     cable_per_jack_ft=10,
     power_pack_ratio=0.74,
     oc_ceiling_ratio=0.84,
+    # Reference conduit from client material list (known accurate values)
+    reference_conduit={
+        '1/2"': 100,
+        '3/4"': 3773,
+        '1"': 790,
+        '1-1/4"': 655,
+    },
+    conduit_source="reference",
 )

@@ -327,6 +327,11 @@ class TakeOffSystem:
         """
         Analyze conduit routing and calculate wire lengths.
 
+        Uses tiered approach:
+        - TIER 1: Reference conduit from config (most accurate, from client data)
+        - TIER 2: Device-based estimation (fallback)
+        - TIER 3: AI vision or PDF vectors (experimental)
+
         Args:
             api_key: Anthropic API key
             use_ai: Whether to use AI vision for routing analysis
@@ -338,7 +343,24 @@ class TakeOffSystem:
         """
         print(f"\n[4/6] Analyzing Conduit Routing...")
 
-        # Find floor plan sheets
+        # TIER 1: Use reference conduit if available in config (most accurate)
+        if self.config and self.config.reference_conduit:
+            print("  Using reference conduit values from config (TIER 1)...")
+            from .routing_analyzer import calculate_wire_from_conduit
+            from .models import ConduitCounts
+
+            self.routing.conduit = ConduitCounts()
+            self.routing.conduit.conduit_by_size = self.config.reference_conduit.copy()
+            self.routing.conduit.wire_by_size = calculate_wire_from_conduit(self.routing.conduit)
+            self.routing.estimated_method = "reference"
+
+            total_conduit = sum(self.routing.conduit.conduit_by_size.values())
+            print(f"    Reference conduit: {total_conduit:,} ft total")
+            for size, length in sorted(self.routing.conduit.conduit_by_size.items()):
+                print(f"      {size}: {length:,} ft")
+            return self.routing
+
+        # TIER 2/3: Find floor plan sheets for estimation methods
         e200_sheet = next((s for s in self.sheets if s.sheet_number == "E200"), None)
         e201_sheet = next((s for s in self.sheets if s.sheet_number == "E201"), None)
 
@@ -358,13 +380,17 @@ class TakeOffSystem:
                 print(f"    Estimated {total_conduit:,} ft total conduit ({self.routing.estimated_method})")
             except Exception as e:
                 print(f"    Warning: Routing analysis failed: {e}")
-                print("    Using device-based estimation...")
+                print("    Using device-based estimation (TIER 2)...")
                 from .routing_analyzer import estimate_conduit_from_devices
                 conduit = estimate_conduit_from_devices(self.aggregate_counts(), building_sqft)
                 self.routing.conduit = conduit
                 self.routing.estimated_method = "device_based"
         else:
-            print("  Floor plan sheets not found, skipping routing analysis")
+            print("  Floor plan sheets not found, using device-based estimation...")
+            from .routing_analyzer import estimate_conduit_from_devices
+            conduit = estimate_conduit_from_devices(self.aggregate_counts(), building_sqft)
+            self.routing.conduit = conduit
+            self.routing.estimated_method = "device_based"
 
         return self.routing
 
@@ -530,6 +556,7 @@ def run_full_pipeline(
     building_sqft: int = 10000,
     use_pdf_extraction: bool = True,
     config_path: str = None,
+    config: ProjectConfig = None,
     floor_count: int = 2
 ) -> TakeOffSystem:
     """
@@ -545,6 +572,7 @@ def run_full_pipeline(
         use_pdf_extraction: Whether to use PDF text extraction (faster, more accurate)
                           instead of vision-based counting
         config_path: Optional path to YAML/JSON config file
+        config: Optional ProjectConfig object (takes precedence over config_path)
         floor_count: Number of floors (for multi-floor sheet deduplication)
 
     Returns:
@@ -554,9 +582,12 @@ def run_full_pipeline(
     print("MEP TAKEOFF SYSTEM - FULL PIPELINE (Enhanced)")
     print("=" * 70)
 
-    # Load or create config
-    config = None
-    if config_path:
+    # Load or create config (config object takes precedence)
+    if config is not None:
+        print(f"Using provided config: {config.name}")
+        if config.reference_conduit:
+            print(f"  Reference conduit available: {list(config.reference_conduit.keys())}")
+    elif config_path:
         if config_path.endswith('.yaml') or config_path.endswith('.yml'):
             config = ProjectConfig.from_yaml(config_path)
         elif config_path.endswith('.json'):

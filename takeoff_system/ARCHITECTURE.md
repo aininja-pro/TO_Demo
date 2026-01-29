@@ -2,7 +2,215 @@
 
 ## Overview
 
-The MEP TakeOff System is a production-ready AI system that generates complete electrical material lists from construction PDF drawings. It matches what an estimator produces manually (119 line items, 28,000+ units).
+The MEP TakeOff System generates complete electrical material lists from construction PDF drawings. It matches what an estimator produces manually (119 line items, 28,000+ units).
+
+---
+
+## Technology Stack & Production Readiness
+
+### Extraction Technologies
+
+| Technology | Status | Cost | Speed | Use Case |
+|------------|--------|------|-------|----------|
+| **pdfplumber** | ✅ Production | Free | Fast | Primary text/symbol extraction |
+| **PyMuPDF (fitz)** | ⚠️ Experimental | Free | Fast | Vector path extraction (conduit) |
+| **Claude Vision** | ✅ Production | $0.01-0.05/page | Slow | Schedule tables, fallback |
+
+### Component Readiness
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  PRODUCTION READY                                               │
+├─────────────────────────────────────────────────────────────────┤
+│  ✅ pdfplumber text extraction (fixtures, symbols, tags)        │
+│  ✅ Reference conduit input (user provides known values)        │
+│  ✅ Device-based conduit estimation (fallback)                  │
+│  ✅ Business rules engine (fittings, wire, boxes, consumables)  │
+│  ✅ Claude Vision for schedule tables (E600, E700)              │
+│  ✅ Output generation (CSV, JSON, text)                         │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│  EXPERIMENTAL / NOT RECOMMENDED FOR PRODUCTION                  │
+├─────────────────────────────────────────────────────────────────┤
+│  ⚠️ PyMuPDF vector extraction for conduit lengths               │
+│     - Requires calibration per drawing style                    │
+│     - Line widths vary by CAD software                          │
+│     - Not reliable without manual tuning                        │
+│                                                                 │
+│  ⚠️ Claude Vision for symbol counting                           │
+│     - Works but expensive at scale                              │
+│     - pdfplumber is more accurate for tagged PDFs               │
+│     - Keep as fallback only                                     │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Recommended Production Configuration
+
+```python
+# Use pdfplumber for extraction (fast, free, accurate)
+use_pdf_extraction = True
+
+# Use reference conduit from user input (most accurate)
+config = ProjectConfig(
+    reference_conduit={'3/4"': 3773, '1"': 790, ...},
+    conduit_source="reference"
+)
+
+# Disable experimental features
+use_pdf_vectors = False  # PyMuPDF conduit extraction
+use_ai_routing = False   # Claude Vision for routing
+```
+
+### Cost Analysis (per project)
+
+| Method | API Calls | Cost |
+|--------|-----------|------|
+| pdfplumber only | 0 | $0.00 |
+| + Claude for schedules | 2-4 pages | $0.05-0.20 |
+| + Claude for all counting | 10+ pages | $0.50-2.00 |
+| Full AI Vision pipeline | 20+ calls | $2.00-5.00 |
+
+### Data Flow by Readiness
+
+```
+PDF Input
+    │
+    ▼
+┌───────────────────────────────────┐
+│  TIER 1: pdfplumber (PRIMARY)     │  ✅ Production
+│  - Fixture tags (F2, F3, X1)      │
+│  - Device symbols                 │
+│  - Demo keynotes                  │
+│  - Data jacks                     │
+└───────────────────────────────────┘
+    │
+    │ if text extraction fails
+    ▼
+┌───────────────────────────────────┐
+│  TIER 2: Claude Vision (FALLBACK) │  ✅ Production (costly)
+│  - Schedule tables (E600, E700)   │
+│  - Complex/untagged layouts       │
+└───────────────────────────────────┘
+
+Conduit Estimation:
+┌───────────────────────────────────┐
+│  TIER 1: Reference Input          │  ✅ Production
+│  - User provides known values     │
+│  - From prior bid or measurement  │
+├───────────────────────────────────┤
+│  TIER 2: Device-Based Estimate    │  ✅ Production
+│  - Calculated from device counts  │
+│  - ~70% accuracy typical          │
+├───────────────────────────────────┤
+│  TIER 3: PyMuPDF Vectors          │  ⚠️ Experimental
+│  - Extracts line paths from PDF   │
+│  - Requires per-drawing calibration│
+└───────────────────────────────────┘
+
+Derived Materials:
+┌───────────────────────────────────┐
+│  Business Rules Engine            │  ✅ Production
+│  - Fittings from conduit (96%+)   │
+│  - Wire from conduit (96%+)       │
+│  - Boxes from devices             │
+│  - Consumables from totals        │
+│  - Configurable multipliers       │
+└───────────────────────────────────┘
+```
+
+### What Needs Human Input
+
+For production accuracy, these items benefit from user input:
+
+| Item | Why | Dashboard Input |
+|------|-----|-----------------|
+| **Reference conduit** | Can't reliably extract from vectors | 4 number fields |
+| **Building sqft** | Affects estimation fallback | 1 number field |
+| **Floor count** | Deduplication for multi-floor sheets | 1 number field |
+| **Wire multipliers** | Varies by contractor | 4 number fields |
+| **Fitting ratios** | Varies by contractor | 5 number fields |
+
+### Material List Composition
+
+```
+BY LINE ITEMS:        BY QUANTITY:
+┌──────────────┐      ┌──────────────┐
+│ Counted: 51% │      │ Counted:  6% │
+│ Derived: 49% │      │ Derived: 94% │
+└──────────────┘      └──────────────┘
+
+Counted = extracted from PDF (fixtures, devices, demo)
+Derived = calculated by business rules (fittings, wire, boxes)
+```
+
+### Dependency Chain: Counted → Derived
+
+**Every derived item depends on counted items (or reference input):**
+
+```
+COUNTED (from PDF)                    DERIVED (calculated)
+───────────────────────────────────────────────────────────
+Sensors (19)            ──────────→   Power Packs (14)
+Cat 6 Jacks (92)        ──────────→   Cable (920 ft) → J-Hooks (230)
+Devices (~60)           ──────────→   Boxes (277) → Rings (220)
+Receptacles/Switches    ──────────→   Cover Plates (88)
+Fixtures (F2, F8)       ──────────→   Fixture Whips (16)
+Linear/Pendants (70)    ──────────→   Pendant Cable (91)
+
+CONDUIT (special case - two paths):
+───────────────────────────────────────────────────────────
+Path A: User provides reference conduit → Fittings, Wire
+        (no dependency on counted items)
+
+Path B: Device-based estimation → Conduit → Fittings, Wire
+        (depends on lighting/power device counts)
+```
+
+**Critical insight:** The 6% counted quantity DRIVES the 94% derived quantity.
+
+If you miss 10 receptacles:
+- Boxes underestimated by ~10
+- Plaster rings underestimated by ~10
+- Cover plates underestimated by ~10
+- Wirenuts, screws all cascade wrong
+
+**Accuracy flows downhill:** Counted accuracy → Derived accuracy
+
+### Demo vs Production Configuration
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  CURRENT STATE: Calibrated for Demo                             │
+├─────────────────────────────────────────────────────────────────┤
+│  Multipliers and ratios are REVERSE-ENGINEERED from the         │
+│  IVCC CETLA client material list to prove the system works.     │
+│                                                                 │
+│  Examples:                                                      │
+│  - Wire: #12 THHN = 2.3x of 3/4" conduit (calculated backward)  │
+│  - Fittings: 1" connectors = 4.9 per 100ft (from their list)    │
+│                                                                 │
+│  This proves we CAN match their output - not that these are     │
+│  the "correct" industry values.                                 │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│  PRODUCTION: Client Provides Their Rules                        │
+├─────────────────────────────────────────────────────────────────┤
+│  Work with client to document THEIR actual business rules:      │
+│                                                                 │
+│  "How do YOU calculate wire from conduit?"                      │
+│  "What's YOUR fitting ratio per 100 ft?"                        │
+│  "How many wirenuts per device do YOU estimate?"                │
+│                                                                 │
+│  Configure dashboard with their institutional knowledge.        │
+│  System learns THEIR way of estimating, not a generic formula.  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**The demo shows capability. Production captures their expertise.**
+
+---
 
 ## System Architecture
 

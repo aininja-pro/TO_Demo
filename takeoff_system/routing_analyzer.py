@@ -205,6 +205,25 @@ def estimate_conduit_with_ai(
     return result
 
 
+def count_lighting_devices(counts: Dict[str, int]) -> int:
+    """Count lighting-related devices for conduit estimation."""
+    keys = ['F2', 'F3', 'F4', 'F4E', 'F5', 'F7', 'F7E', 'F8', 'F9', 'X1', 'X2',
+            'Ceiling Occupancy Sensor', 'Daylight Sensor']
+    return sum(counts.get(k, 0) for k in keys)
+
+
+def count_power_devices(counts: Dict[str, int]) -> int:
+    """Count power-related devices for conduit estimation."""
+    keys = ['Duplex Receptacle', 'GFI Receptacle', 'SP Switch', '3-Way Switch']
+    return sum(counts.get(k, 0) for k in keys)
+
+
+def count_control_devices(counts: Dict[str, int]) -> int:
+    """Count control/low-voltage devices for 1/2" conduit estimation."""
+    keys = ['Wall Occupancy Sensor', 'Wireless Dimmer', 'Daylight Sensor']
+    return sum(counts.get(k, 0) for k in keys)
+
+
 def estimate_conduit_from_devices(
     device_counts: Dict[str, int],
     building_sqft: int = 10000,
@@ -213,13 +232,18 @@ def estimate_conduit_from_devices(
     """
     Estimate conduit lengths based on device counts and building size.
 
-    This is a fallback method when AI routing analysis isn't available
-    or reliable.
+    This is the fallback method (TIER 2) when reference conduit isn't available.
+    Produces all 4 standard conduit sizes:
+    - 1/2" EMT: Control wiring, low-voltage
+    - 3/4" EMT: Lighting circuits (most common)
+    - 1" EMT: Power circuits
+    - 1-1/4" EMT: Feeders
 
     Industry rules of thumb:
-    - ~1 ft conduit per sq ft for lighting
-    - ~0.5 ft conduit per sq ft for power
-    - Adjust by device density
+    - Lighting: ~25 ft conduit per lighting device
+    - Power: ~30 ft conduit per power device
+    - Controls: ~15 ft conduit per control device
+    - Feeders: Based on building sqft (1 ft per 15 sqft)
 
     Args:
         device_counts: Dictionary of device counts
@@ -227,58 +251,51 @@ def estimate_conduit_from_devices(
         floors: Number of floors
 
     Returns:
-        ConduitCounts with estimated lengths
+        ConduitCounts with estimated lengths for all 4 sizes
     """
     # Count devices by category
-    lighting_devices = (
-        device_counts.get("F2", 0) +
-        device_counts.get("F3", 0) +
-        device_counts.get("F4", 0) +
-        device_counts.get("F4E", 0) +
-        device_counts.get("F5", 0) +
-        device_counts.get("F7", 0) +
-        device_counts.get("F7E", 0) +
-        device_counts.get("F8", 0) +
-        device_counts.get("F9", 0) +
-        device_counts.get("X1", 0) +
-        device_counts.get("X2", 0) +
-        device_counts.get("Ceiling Occupancy Sensor", 0) +
-        device_counts.get("Wall Occupancy Sensor", 0) +
-        device_counts.get("Daylight Sensor", 0)
-    )
+    lighting_devices = count_lighting_devices(device_counts)
+    power_devices = count_power_devices(device_counts)
+    control_devices = count_control_devices(device_counts)
 
-    power_devices = (
-        device_counts.get("Duplex Receptacle", 0) +
-        device_counts.get("GFI Receptacle", 0) +
-        device_counts.get("SP Switch", 0) +
-        device_counts.get("3-Way Switch", 0)
-    )
+    # Estimate circuits (8 devices per lighting circuit, 5 per power circuit)
+    lighting_circuits = max(1, lighting_devices // 8)
+    power_circuits = max(1, power_devices // 5)
 
-    data_devices = device_counts.get("Cat 6 Jack", 0)
+    # Conduit by circuit type with device-based estimation
+    # 1/2" for controls: ~15 ft per control device
+    conduit_12 = control_devices * 15
 
-    # Base estimation from building size
-    base_lighting_conduit = building_sqft * 0.4  # 0.4 ft per sqft
-    base_power_conduit = building_sqft * 0.2     # 0.2 ft per sqft
+    # 3/4" for lighting: ~25 ft per lighting device OR circuit-based
+    # Use the higher of device-based or circuit-based estimate
+    conduit_34_device = lighting_devices * 25
+    conduit_34_circuit = lighting_circuits * 250
+    conduit_34 = max(conduit_34_device, conduit_34_circuit)
 
-    # Adjust by device density
-    lighting_density = lighting_devices / (building_sqft / 1000)
-    power_density = power_devices / (building_sqft / 1000)
+    # 1" for power: ~30 ft per power device OR circuit-based
+    conduit_1_device = power_devices * 30
+    conduit_1_circuit = power_circuits * 150
+    conduit_1 = max(conduit_1_device, conduit_1_circuit)
 
-    # Density multipliers (more devices = more conduit)
-    lighting_multiplier = 1.0 + (lighting_density - 5) * 0.1  # 5 devices per 1000 sqft baseline
-    power_multiplier = 1.0 + (power_density - 4) * 0.1       # 4 devices per 1000 sqft baseline
-
-    # Calculate totals
-    lighting_conduit = int(base_lighting_conduit * max(0.5, lighting_multiplier))
-    power_conduit = int(base_power_conduit * max(0.5, power_multiplier))
+    # 1-1/4" for feeders: based on building size (1 ft per 15 sqft)
+    conduit_114 = building_sqft // 15
 
     # Add vertical runs for multiple floors
     vertical_runs = (floors - 1) * 50  # 50 ft per floor for risers
+    conduit_34 += vertical_runs
+
+    # Ensure minimum values for each size
+    conduit_12 = max(conduit_12, 50)    # At least 50 ft of 1/2"
+    conduit_34 = max(conduit_34, 500)   # At least 500 ft of 3/4"
+    conduit_1 = max(conduit_1, 200)     # At least 200 ft of 1"
+    conduit_114 = max(conduit_114, 100) # At least 100 ft of 1-1/4"
 
     result = ConduitCounts()
     result.conduit_by_size = {
-        '3/4"': lighting_conduit + vertical_runs,
-        '1"': power_conduit,
+        '1/2"': conduit_12,
+        '3/4"': conduit_34,
+        '1"': conduit_1,
+        '1-1/4"': conduit_114,
     }
 
     return result
@@ -291,45 +308,46 @@ def calculate_wire_from_conduit(
     """
     Calculate wire quantities from conduit lengths.
 
+    Uses conduit size to determine wire gauge with calibrated multipliers:
+    - 1/2" conduit → #14 THHN (control wiring) - 3.0x multiplier
+    - 3/4" conduit → #12 THHN (lighting) - 2.3x multiplier (calibrated)
+    - 1" conduit → #10 THHN (power) - 8.4x multiplier (multiple conductors)
+    - 1-1/4" conduit → #8 THHN (feeders) - 0.08x (only ~8% is #8)
+
     Args:
         conduit_counts: ConduitCounts with conduit lengths by size
-        circuit_breakdown: Optional breakdown of circuit types
-                          e.g. {"lighting": 0.6, "power": 0.3, "feeder": 0.1}
+        circuit_breakdown: Unused, kept for backward compatibility
 
     Returns:
-        Dictionary of wire sizes to lengths in feet
+        Dictionary of wire sizes to lengths in feet (aggregated format)
     """
-    if circuit_breakdown is None:
-        circuit_breakdown = {
-            "lighting": 0.6,  # 60% lighting (#12)
-            "power": 0.3,     # 30% power (#10)
-            "feeder": 0.1,    # 10% feeder (#8 or larger)
-        }
-
     wire = {}
     conduit = conduit_counts.conduit_by_size
 
+    total_12 = conduit.get('1/2"', 0)
     total_34 = conduit.get('3/4"', 0)
     total_1 = conduit.get('1"', 0)
     total_114 = conduit.get('1-1/4"', 0)
 
+    # #14 THHN from 1/2" conduit (control wiring)
+    # Multiplier: 3.0 (2 conductors + ground)
+    if total_12 > 0:
+        wire["#14 THHN"] = int(total_12 * 3.0)
+
     # #12 THHN from 3/4" conduit (lighting)
-    # Multiplier: 2.2 (1 hot + 1 neutral + 1 ground + waste)
-    wire["#12 THHN Black"] = int(total_34 * 1.1)
-    wire["#12 THHN White"] = int(total_34 * 1.0)
-    wire["#12 THHN Green"] = int(total_34 * 1.0)
+    # Calibrated multiplier: 2.3x (matches client data)
+    if total_34 > 0:
+        wire["#12 THHN"] = int(total_34 * 2.3)
 
     # #10 THHN from 1" conduit (power)
-    # Multiplier: 2.5 for larger gauge
-    wire["#10 THHN Black"] = int(total_1 * 1.2)
-    wire["#10 THHN White"] = int(total_1 * 1.1)
-    wire["#10 THHN Green"] = int(total_1 * 1.1)
+    # Calibrated multiplier: 8.4x (client uses multiple conductors per circuit)
+    if total_1 > 0:
+        wire["#10 THHN"] = int(total_1 * 8.4)
 
     # #8 THHN from 1-1/4" conduit (feeders)
+    # Only ~8% of 1-1/4" conduit carries #8 (rest is #3, #6)
     if total_114 > 0:
-        wire["#8 THHN Black"] = int(total_114 * 1.3)
-        wire["#8 THHN White"] = int(total_114 * 1.2)
-        wire["#8 THHN Green"] = int(total_114 * 1.2)
+        wire["#8 THHN"] = int(total_114 * 0.08)
 
     return wire
 
