@@ -363,6 +363,52 @@ def derive_fire_stopping(
 
 
 # =============================================================================
+# SUPPORT HARDWARE DERIVATION RULES
+# =============================================================================
+
+def derive_support_hardware(
+    ceiling_sensors: int,
+    f10_pendants: int,
+    f11_pendants: int
+) -> Dict[str, int]:
+    """
+    Calculate support hardware for fixture mounting.
+
+    Calibrated from IVCC CETLA project:
+    - T-Bar Clips: 1 per ceiling sensor (conduit clips to ceiling grid)
+    - All Thread 3/8": 2 per F11 pendant + 1 per F10 pendant (suspension rods)
+    - Hex Nuts: 1:1 with all thread
+    - Beam Clamps: 0.62 per F11 pendant (structural mounting)
+    - Unistrut Deep: 0.62 per F11 pendant (support channel)
+    - Pull Box: 1 per project (situational - large junction)
+
+    Args:
+        ceiling_sensors: Count of ceiling-mounted occupancy sensors
+        f10_pendants: Count of F10 linear pendants (22', 30')
+        f11_pendants: Count of F11 square/rectangular pendants
+
+    Returns:
+        Dict of support hardware quantities
+    """
+    # All thread for pendant suspension (2 rods per F11, 1 per F10)
+    all_thread = (f11_pendants * 2) + f10_pendants
+
+    # Beam clamps and unistrut for F11 pendants
+    beam_clamp_ratio = 0.62  # Calibrated from client data
+    beam_clamps = int(f11_pendants * beam_clamp_ratio)
+    unistrut_deep = int(f11_pendants * beam_clamp_ratio)
+
+    return {
+        "T-Bar Wire Conduit Clip": ceiling_sensors,
+        "All Thread 3/8\"": all_thread,
+        "Hex Nut 3/8\"": all_thread,
+        "Flange Beam Clamp": beam_clamps,
+        "Unistrut Deep": unistrut_deep,
+        "Pull Box 12x12x6": 1,  # Situational - typically 1 per project
+    }
+
+
+# =============================================================================
 # WIRE DERIVATION RULES
 # =============================================================================
 
@@ -458,15 +504,22 @@ def derive_all_materials(
         counts.get("16' Linear LED", 0)
     )
 
-    pendant_count = (
+    # F10 pendants (linear hanging fixtures)
+    f10_pendant_count = (
         counts.get("F10-22", 0) +
-        counts.get("F10-30", 0) +
+        counts.get("F10-30", 0)
+    )
+
+    # F11 pendants (square/rectangular hanging fixtures)
+    f11_pendant_count = (
         counts.get("F11-4X4", 0) +
         counts.get("F11-6X6", 0) +
         counts.get("F11-8X8", 0) +
         counts.get("F11-10X10", 0) +
         counts.get("F11-16X10", 0)
     )
+
+    pendant_count = f10_pendant_count + f11_pendant_count
 
     surface_count = counts.get("F7", 0) + counts.get("F7E", 0)
 
@@ -516,6 +569,15 @@ def derive_all_materials(
         lay_in_fixtures, linear_count, pendant_count, surface_count
     )
     derived.update(accessories)
+
+    # ==========================================================================
+    # SUPPORT HARDWARE
+    # ==========================================================================
+
+    support_hardware = derive_support_hardware(
+        ceiling_sensors, f10_pendant_count, f11_pendant_count
+    )
+    derived.update(support_hardware)
 
     # ==========================================================================
     # FITTINGS (if conduit data available)

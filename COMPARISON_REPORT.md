@@ -49,10 +49,10 @@
 | 2371 | 3/4" Unistrut Strap | 116 | 116 | 0 | ✅ |
 | 2372 | 1" Unistrut Strap | 80 | 79 | -1 | ✅ |
 | 2373 | 1-1/4" Unistrut Strap | 48 | 47 | -1 | ✅ |
-| 2425 | 1/2" T-Bar Wire Conduit Clip | 16 | - | - | ➖ |
-| 2445 | 3/8" All Thread | 30 | - | - | ➖ |
-| 2447 | Hex Nut 3/8" Zinc Plated | 30 | - | - | ➖ |
-| 2451 | Flange Beam Clamp for 3/8" Thrd Rod | 8 | - | - | ➖ |
+| 2425 | 1/2" T-Bar Wire Conduit Clip | 16 | 16 | 0 | ✅ |
+| 2445 | 3/8" All Thread | 30 | 31 | +1 | 🟡 |
+| 2447 | Hex Nut 3/8" Zinc Plated | 30 | 31 | +1 | 🟡 |
+| 2451 | Flange Beam Clamp for 3/8" Thrd Rod | 8 | 8 | 0 | ✅ |
 | 2469 | 4" Square Box (1/2 & 3/4 KO's) | 61 | 61 | 0 | ✅ |
 | 2470 | 4" Square x 1-1/2" Deep Box w/bkt | 103 | 103 | 0 | ✅ |
 | 2472 | 4" Square x 2-1/8" Deep Box w/brkt | 10 | 10 | 0 | ✅ |
@@ -97,8 +97,8 @@
 | 5261 | Pendant /Cable (length as required) | 91 | 91 | 0 | ✅ |
 | 5294 | Manufactured Fixture Whip (14/3) | 16 | 16 | 0 | ✅ |
 | 5297 | Red Scotchlok Wirenuts (#18-10) | 36 | 36 | 0 | ✅ |
-| 5763 | 12x12x6" Screw Cover Pull Box-Nema 1 | 1 | - | - | ➖ |
-| 5932 | Unistrut (Deep) | 8 | - | - | ➖ |
+| 5763 | 12x12x6" Screw Cover Pull Box-Nema 1 | 1 | 1 | 0 | ✅ |
+| 5932 | Unistrut (Deep) | 8 | 8 | 0 | ✅ |
 | 5935 | Cut 12 Gauge 1-5/8x1-5/8 Channel (labor) | 4 | - | - | ➖ |
 | 6133 | Red Wirenuts (10-18 guage) | 660 | 660 | 0 | ✅ |
 | 7114 | Ground Screw with Bare Pigtail | 39 | 39 | 0 | ✅ |
@@ -184,17 +184,17 @@
 | Metric | Count |
 |--------|------:|
 | **Total Client Items** | 119 |
-| **Implemented** | 106 |
-| **Exact Match (✅)** | 105 |
-| **Close Match (🟡)** | 1 |
-| **Not Implemented (➖)** | 13 |
+| **Implemented** | 112 |
+| **Exact Match (✅)** | 109 |
+| **Close Match (🟡)** | 3 |
+| **Not Implemented (➖)** | 7 |
 
 ### Accuracy
 
 ```
-Implemented Items:  106/119 (89%)
-Exact Matches:      105/106 (99%)
-Within 5%:          106/106 (100%)
+Implemented Items:  112/119 (94%)
+Exact Matches:      109/112 (97%)
+Within 5%:          112/112 (100%)
 ```
 
 ---
@@ -209,14 +209,8 @@ These items are not currently derived by the system:
 | 1144 | 3/4" Liquidtight | 6 | Specialty conduit - needs plan analysis |
 | 1924 | 3/4" 90D LT Flex Conn | 4 | Specialty fitting |
 | 2064 | Core Existing Floor | 2 | Labor item |
-| 2425 | T-Bar Wire Conduit Clip | 16 | Specialty hardware |
-| 2445 | 3/8" All Thread | 30 | Support hardware |
-| 2447 | Hex Nut 3/8" | 30 | Support hardware |
-| 2451 | Flange Beam Clamp | 8 | Support hardware |
 | 2665 | #3 THHN Wire | 150 | Large feeder - needs panel schedule |
 | 4409 | Wire Termination Labor | 6 | Labor item |
-| 5763 | Pull Box | 1 | Specialty item |
-| 5932 | Unistrut (Deep) | 8 | Support hardware |
 | 5935 | Channel cutting labor | 4 | Labor item |
 | T0001-T0004 | Misc tasks | 4 | Labor/task items |
 
