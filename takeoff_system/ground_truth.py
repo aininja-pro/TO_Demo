@@ -140,7 +140,8 @@ GROUND_TRUTH_BOXES = {
 # =============================================================================
 
 GROUND_TRUTH_RINGS = {
-    '4" Square-3/0 Plaster Ring': 61,  # 48 (1/2"D) + 13 (5/8"D)
+    '4" Square-3/0 Plaster Ring 1/2"D': 48,   # Surface mount depth
+    '4" Square-3/0 Plaster Ring 5/8"D': 13,   # Flush mount depth
     '4" Square-1G Plaster Ring': 67,
     '4" Square-2G Plaster Ring': 3,
     '4-11/16"-1G Plaster Ring': 89,
@@ -155,8 +156,9 @@ GROUND_TRUTH_PLATES = {
     "Duplex Plate": 31,          # 1G Plastic Duplex Receptacle Plate
     "Duplex Plate 2G": 3,        # 2G Plastic Duplex Receptacle Plate
     "Switch Plate": 5,           # 1G Plastic Switch Plate
-    "Blank Cover": 13,           # 4" Square Flat Blank Cover
-    "Blank Cover w/KO": 28,      # 14 (4") + 14 (4-11/16")
+    "Blank Cover": 13,              # 4" Square Flat Blank Cover
+    '4" Blank Cover w/KO': 14,      # 4" Square Flat Blank Cover w/KO
+    '4-11/16" Blank Cover w/KO': 14, # 4-11/16" Square Box Blank Cvr w/KO
 }
 
 # =============================================================================

@@ -251,13 +251,11 @@ def derive_plaster_rings(
                           dimmers_count + wall_sensors + daylight_sensors +
                           downlight_count - (two_gang_locations * 2))
 
-    # 3/0 rings: total of surface mount + flush mount
-    total_3_0 = surface_mount_3_0 + flush_mount_3_0
-
     return {
         "4\" Square-1G Plaster Ring": max(0, single_gang_devices),
         "4\" Square-2G Plaster Ring": two_gang_locations,
-        "4\" Square-3/0 Plaster Ring": total_3_0,
+        "4\" Square-3/0 Plaster Ring 1/2\"D": surface_mount_3_0,
+        "4\" Square-3/0 Plaster Ring 5/8\"D": flush_mount_3_0,
         "4-11/16\"-1G Plaster Ring": large_single_gang,
     }
 
@@ -275,7 +273,8 @@ def derive_plates(
     wall_sensors: int = 0,
     two_gang_locations: int = 0,
     blank_cover_count: int = 0,
-    blank_cover_w_ko_count: int = 0
+    blank_cover_w_ko_4: int = 0,
+    blank_cover_w_ko_large: int = 0
 ) -> Dict[str, int]:
     """
     Calculate wall plates for devices.
@@ -308,7 +307,8 @@ def derive_plates(
         "Decora Plate": decora_plates,
         "Switch Plate": switch_plates,
         "Blank Cover": blank_cover_count,
-        "Blank Cover w/KO": blank_cover_w_ko_count,
+        '4" Blank Cover w/KO': blank_cover_w_ko_4,
+        '4-11/16" Blank Cover w/KO': blank_cover_w_ko_large,
     }
 
 
@@ -807,7 +807,8 @@ def derive_all_materials(
         wall_sensors=wall_sensors,
         two_gang_locations=two_gang_locations,
         blank_cover_count=blank_cover_4,
-        blank_cover_w_ko_count=blank_cover_w_ko_4 + blank_cover_w_ko_large
+        blank_cover_w_ko_4=blank_cover_w_ko_4,
+        blank_cover_w_ko_large=blank_cover_w_ko_large
     )
     derived.update(plates)
 
@@ -1098,8 +1099,12 @@ def explain_derivations(
     s_3_0 = (ceiling_sensors + daylight_sensors + f4 + f4e + f3 + strip_4 +
             max(0, x1 - 2))
     f_3_0 = f2 + f8 + f7 + f7e + 1
-    formulas['4" Square-3/0 Plaster Ring'] = (
-        f"Surface({s_3_0}) + Flush({f_3_0}) = {s_3_0 + f_3_0}"
+    formulas['4" Square-3/0 Plaster Ring 1/2"D'] = (
+        f"Surface mount: {ceiling_sensors} ceil + {daylight_sensors} day + "
+        f"{f4}+{f4e} F4 + {f3} F3 + {strip_4} strip + {max(0, x1 - 2)} X1 = {s_3_0}"
+    )
+    formulas['4" Square-3/0 Plaster Ring 5/8"D'] = (
+        f"Flush mount: {f2} F2 + {f8} F8 + {f7} F7 + {f7e} F7E + 1 = {f_3_0}"
     )
     formulas['4-11/16"-1G Plaster Ring'] = f"= sensor/control boxes = {sensor_ctrl}"
 
@@ -1110,9 +1115,11 @@ def explain_derivations(
     formulas["Decora Plate"] = f"{gfi} GFI + {wall_sensors} wall sensors = {gfi + wall_sensors}"
     formulas["Switch Plate"] = f"{sp_switches} SP + {three_way} 3-way = {total_switches}"
     formulas["Blank Cover"] = f"~21% of {junction} junction points = {round(junction * 0.21)}"
-    formulas["Blank Cover w/KO"] = (
-        f"~23% of {junction} junctions + {large_jnc} large = "
-        f"{int(junction * 0.23) + large_jnc}"
+    formulas['4" Blank Cover w/KO'] = (
+        f"~23% of {junction} junction points = {int(junction * 0.23)}"
+    )
+    formulas['4-11/16" Blank Cover w/KO'] = (
+        f"{large_jnc} large junction points"
     )
     if two_gang > 0:
         formulas["Duplex Plate 2G"] = f"{two_gang} two-gang locations"

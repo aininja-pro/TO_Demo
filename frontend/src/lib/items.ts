@@ -45,7 +45,8 @@ export const ITEM_NUMBERS: Record<string, string | number> = {
   // Rings
   '4" Square-1G Plaster Ring': 4897,
   '4" Square-2G Plaster Ring': 4902,
-  '4" Square-3/0 Plaster Ring': '4891/92',
+  '4" Square-3/0 Plaster Ring 1/2"D': 4891,
+  '4" Square-3/0 Plaster Ring 5/8"D': 4892,
   '4-11/16"-1G Plaster Ring': 4925,
   // Plates
   'Decora Plate': 4949,
@@ -53,7 +54,8 @@ export const ITEM_NUMBERS: Record<string, string | number> = {
   'Switch Plate': 4953,
   'Duplex Plate 2G': 4959,
   'Blank Cover': 5079,
-  'Blank Cover w/KO': '5080/82',
+  '4" Blank Cover w/KO': 5080,
+  '4-11/16" Blank Cover w/KO': 5082,
   // Consumables
   'Red Wirenut': 6133,
   'Red Scotchlok': 5297,
@@ -169,7 +171,7 @@ const WIRE_PATTERN = /THHN$/
 const BOX_PATTERN = /Square Box/
 const BOX_KEYS = ['12x12x6" Pull Box']
 const RING_PATTERN = /Plaster Ring/
-const PLATE_KEYS = ['Duplex Plate', 'Decora Plate', 'Switch Plate', 'Blank Cover', 'Blank Cover w/KO', 'Duplex Plate 2G']
+const PLATE_KEYS = ['Duplex Plate', 'Decora Plate', 'Switch Plate', 'Blank Cover', '4" Blank Cover w/KO', '4-11/16" Blank Cover w/KO', 'Duplex Plate 2G']
 const CONSUMABLE_KEYS = ['Red Wirenut', 'Red Scotchlok', 'Ground Screw w/Pigtail', 'Ground Screw', 'Pan Head Screw', 'Poly Pull Line (ft)']
 const ACCESSORY_KEYS = ['Fixture Whip', 'Pendant/Cable', 'Seismic Wire']
 const HARDWARE_KEYS = ['T-Bar Conduit Clip', '3/8" All Thread', '3/8" Hex Nut', '3/8" Beam Clamp', 'Core Floor Penetration', 'Unistrut (Deep)']

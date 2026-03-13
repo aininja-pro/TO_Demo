@@ -56,14 +56,16 @@ ITEM_NUMBERS = {
     # Rings
     '4" Square-1G Plaster Ring': 3101,
     '4" Square-2G Plaster Ring': 3102,
-    '4" Square-3/0 Plaster Ring': 3103,
+    '4" Square-3/0 Plaster Ring 1/2"D': 4891,
+    '4" Square-3/0 Plaster Ring 5/8"D': 4892,
     '4-11/16"-1G Plaster Ring': 3111,
     # Plates
     "Duplex Plate": 3201,
     "Decora Plate": 3202,
     "Switch Plate": 3203,
     "Blank Cover": 3204,
-    "Blank Cover w/KO": 3205,
+    '4" Blank Cover w/KO': 5080,
+    '4-11/16" Blank Cover w/KO': 5082,
     # Consumables
     "Red Wirenut": 4001,
     "Red Scotchlok": 4002,
