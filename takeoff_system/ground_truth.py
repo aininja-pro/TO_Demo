@@ -152,7 +152,8 @@ GROUND_TRUTH_RINGS = {
 
 GROUND_TRUTH_PLATES = {
     "Decora Plate": 8,           # 1G Plastic Decora Plate
-    "Duplex Plate": 34,          # 31 (1G) + 3 (2G)
+    "Duplex Plate": 31,          # 1G Plastic Duplex Receptacle Plate
+    "Duplex Plate 2G": 3,        # 2G Plastic Duplex Receptacle Plate
     "Switch Plate": 5,           # 1G Plastic Switch Plate
     "Blank Cover": 13,           # 4" Square Flat Blank Cover
     "Blank Cover w/KO": 28,      # 14 (4") + 14 (4-11/16")
@@ -204,10 +205,11 @@ GROUND_TRUTH_WIRE = {
 # =============================================================================
 
 GROUND_TRUTH_CONSUMABLES = {
-    "Red Wirenut": 660,          # Red Wirenuts (10-18 gauge)
-    "Red Scotchlok": 36,         # Red Scotchlok Wirenuts (#18-10)
-    "Ground Screw": 90,          # 39 (with pigtail) + 51 (plain)
-    "Pan Head Screw": 360,       # 6X1/4" Pan Head Tapping Screw
+    "Red Wirenut": 660,              # Red Wirenuts (10-18 gauge)
+    "Red Scotchlok": 36,             # Red Scotchlok Wirenuts (#18-10)
+    "Ground Screw w/Pigtail": 39,    # Ground screw with bare pigtail
+    "Ground Screw": 51,              # Plain ground screw
+    "Pan Head Screw": 360,           # 6X1/4" Pan Head Tapping Screw
     "Poly Pull Line (ft)": 1837,
 }
 

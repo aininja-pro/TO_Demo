@@ -66,9 +66,10 @@ ITEM_NUMBERS = {
     "Blank Cover w/KO": 3205,
     # Consumables
     "Red Wirenut": 4001,
-    "Yellow Wirenut": 4002,
-    "Ground Screw": 4003,
-    "Pan Head Tapping Screw #8": 4004,
+    "Red Scotchlok": 4002,
+    "Ground Screw w/Pigtail": 4003,
+    "Ground Screw": 4009,
+    "Pan Head Screw": 4004,
     "Poly Pull Line (ft)": 4005,
     "Black Tape": 4006,
     "Red Phase Tape": 4007,
@@ -124,8 +125,11 @@ ITEM_NUMBERS = {
     # Accessories
     "Fixture Whip": 8001,
     "Pendant/Cable": 8002,
-    "Aircraft Cable Kit": 8003,
-    "Canopy Kit": 8004,
+    "Seismic Wire": 8005,
+    # Plates (additional)
+    "Duplex Plate 2G": 3206,
+    # Rings (additional)
+    '4-11/16"-1G Plaster Ring': 3111,
     # Demo items
     "Demo 2'x4' Recessed": "D01",
     "Demo 2'x2' Recessed": "D02",
