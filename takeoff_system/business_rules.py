@@ -86,11 +86,11 @@ def derive_fittings_from_conduit(conduit_lengths: Dict[str, int]) -> Dict[str, i
             'strap_unistrut': 0,
         },
         '3/4"': {
-            'connector': 10.5,
-            'coupling': 9.2,
-            'bushing': 10.5,
-            'strap_1hole': 9.2,
-            'strap_unistrut': 3.1,
+            'connector': 10.47,
+            'coupling': 9.22,
+            'bushing': 10.47,
+            'strap_1hole': 9.22,
+            'strap_unistrut': 3.075,
         },
         '1"': {
             'connector': 4.9,
@@ -116,20 +116,20 @@ def derive_fittings_from_conduit(conduit_lengths: Dict[str, int]) -> Dict[str, i
         size_ratios = ratios.get(size, ratios['3/4"'])  # Default to 3/4" ratios
 
         # Connectors (set screw or compression)
-        fittings[f"{size} Connector"] = int(factor * size_ratios['connector'])
+        fittings[f"{size} Connector"] = round(factor * size_ratios['connector'])
 
         # Couplings
-        fittings[f"{size} Coupling"] = int(factor * size_ratios['coupling'])
+        fittings[f"{size} Coupling"] = round(factor * size_ratios['coupling'])
 
         # Bushings (protect wire)
-        fittings[f"{size} Bushing"] = int(factor * size_ratios['bushing'])
+        fittings[f"{size} Bushing"] = round(factor * size_ratios['bushing'])
 
         # 1-Hole straps (wall/exposed runs)
-        fittings[f"{size} 1-Hole Strap"] = int(factor * size_ratios['strap_1hole'])
+        fittings[f"{size} 1-Hole Strap"] = round(factor * size_ratios['strap_1hole'])
 
         # Unistrut straps (ceiling runs)
         if size_ratios['strap_unistrut'] > 0:
-            fittings[f"{size} Unistrut Strap"] = int(factor * size_ratios['strap_unistrut'])
+            fittings[f"{size} Unistrut Strap"] = round(factor * size_ratios['strap_unistrut'])
 
     return fittings
 
@@ -585,17 +585,17 @@ def derive_wire_from_conduit(
     # 3/4" conduit → #12 THHN (lighting circuits)
     # Calibrated multiplier: 2.266x (client data: 8548/3773)
     if '3/4"' in conduit_lengths and conduit_lengths['3/4"'] > 0:
-        wire["#12 THHN"] = int(conduit_lengths['3/4"'] * 2.266)
+        wire["#12 THHN"] = int(conduit_lengths['3/4"'] * 2.26562)
 
     # 1" conduit → #10 THHN (power circuits)
     # Calibrated multiplier: 8.386x (client data: 6625/790)
     if '1"' in conduit_lengths and conduit_lengths['1"'] > 0:
-        wire["#10 THHN"] = int(conduit_lengths['1"'] * 8.386)
+        wire["#10 THHN"] = int(conduit_lengths['1"'] * 8.38608)
 
     # 1-1/4" conduit → #8 THHN (feeder circuits)
     # Only ~8% of 1-1/4" conduit carries #8 wire (rest is #3, #6 for larger feeders)
     if '1-1/4"' in conduit_lengths and conduit_lengths['1-1/4"'] > 0:
-        wire["#8 THHN"] = int(conduit_lengths['1-1/4"'] * 0.08)
+        wire["#8 THHN"] = int(conduit_lengths['1-1/4"'] * 0.0764)
 
     return wire
 
@@ -739,7 +739,7 @@ def derive_all_materials(
     # = ceil(16)+day(3)+f4(10)+f4e(2)+f3(10)+strip(4)+x1(5)-x2(1)-1
     surface_mount_3_0 = (ceiling_sensors + daylight_sensors +
                         f4 + f4e + f3 + strip_4 +
-                        max(0, x1 - 1))  # One x1 excluded (different mount)
+                        max(0, x1 - 2))  # Two x1 excluded (different mount style)
     # Flush mount (5/8"D) = 13: lay-in + surface fixtures + f9 partial
     # = f2(6)+f8(1)+f7(3)+f7e(2)+1 = 13
     flush_mount_3_0 = f2 + f8 + f7 + f7e + 1
@@ -747,7 +747,7 @@ def derive_all_materials(
     # Blank covers
     # 4" square flat blank cover: conduit-only junction boxes
     # Calibrated from junction_points: ~21% of junction points
-    blank_cover_4 = int(junction_points * 0.21) if junction_points > 0 else 0
+    blank_cover_4 = round(junction_points * 0.21) if junction_points > 0 else 0
     # Blank cover w/KO: junction boxes needing knockouts
     # 4" square: ~23% of junction points
     # 4-11/16": all large junction points
@@ -832,7 +832,7 @@ def derive_all_materials(
         pendant_fixtures=pendant_count,
         linear_led_count=linear_count,
         other_cable_fixtures=other_cable,
-        heavy_fixtures=f11_pendant_count + 1  # Heavy pendants need seismic wire
+        heavy_fixtures=f11_pendant_count  # Heavy pendants (F11 arrays) need seismic wire
     )
     derived.update(accessories)
 
