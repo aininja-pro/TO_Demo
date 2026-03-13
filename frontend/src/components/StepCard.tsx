@@ -7,18 +7,20 @@ interface StepCardProps {
 
 export function StepCard({ step }: StepCardProps) {
   return (
-    <div className="flex items-center gap-3 py-2">
+    <div className={`flex items-center gap-3 py-3 transition-opacity ${
+      step.status === 'pending' ? 'opacity-40' : 'opacity-100'
+    }`}>
       <StepIcon status={step.status} />
-      <div className="flex-1">
-        <span className={step.status === 'active' ? 'font-medium' : ''}>
+      <div className="flex-1 min-w-0">
+        <span className={`text-sm ${step.status === 'active' ? 'font-semibold text-[#2563eb]' : step.status === 'complete' ? 'text-gray-700' : 'text-gray-400'}`}>
           Step {step.step}: {step.name}
-          {step.status === 'active' && '...'}
         </span>
+        {step.status === 'complete' && step.result && (
+          <p className="text-xs text-green-700 mt-0.5">{formatResult(step.result)}</p>
+        )}
       </div>
-      {step.status === 'complete' && step.result && (
-        <span className="text-sm text-muted-foreground font-mono tabular-nums">
-          {formatResult(step.result)}
-        </span>
+      {step.status === 'active' && (
+        <span className="text-xs text-[#2563eb] font-medium animate-pulse">Processing...</span>
       )}
     </div>
   )
@@ -45,5 +47,5 @@ function formatResult(result: Record<string, unknown>): string {
       parts.push(`${val} ${label}`)
     }
   }
-  return parts.join(', ')
+  return parts.length > 0 ? parts.join(' · ') : ''
 }

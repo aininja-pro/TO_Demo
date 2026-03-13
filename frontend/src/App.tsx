@@ -5,6 +5,7 @@ import { UploadZone } from './components/UploadZone'
 import { PipelineProgress } from './components/PipelineProgress'
 import { ResultsDashboard } from './components/ResultsDashboard'
 import { Button } from './components/ui/button'
+import { ArrowLeft } from 'lucide-react'
 
 export default function App() {
   const {
@@ -30,12 +31,18 @@ export default function App() {
     <div className="min-h-screen bg-[#f8fafc]">
       <Header>
         {state === 'results' && (
-          <Button variant="outline" size="sm" className="text-white border-white/30 hover:bg-white/10" onClick={reset}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-white border-white/30 hover:bg-white/10 gap-1.5"
+            onClick={reset}
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
             New Takeoff
           </Button>
         )}
       </Header>
-      <main className="max-w-6xl mx-auto px-6 py-10">
+      <main className={`mx-auto px-6 py-10 ${state === 'results' ? 'max-w-7xl' : 'max-w-6xl'}`}>
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-center">
             {error}

@@ -412,44 +412,36 @@ def derive_fire_stopping(
 # =============================================================================
 
 def derive_support_hardware(
-    ceiling_sensors: int,
-    f10_pendants: int,
-    f11_pendants: int
+    conduit_half_inch: int,
+    total_conduit_ft: int,
+    disconnect_count: int,
+    panel_count: int = 1,
 ) -> Dict[str, int]:
     """
-    Calculate support hardware for fixture mounting.
+    Calculate mounting and support hardware from conduit/equipment data.
 
     Calibrated from IVCC CETLA project:
-    - T-Bar Clips: 1 per ceiling sensor (conduit clips to ceiling grid)
-    - All Thread 3/8": 2 per F11 pendant + 1 per F10 pendant (suspension rods)
-    - Hex Nuts: 1:1 with all thread
-    - Beam Clamps: 0.62 per F11 pendant (structural mounting)
-    - Unistrut Deep: 0.62 per F11 pendant (support channel)
-    - Pull Box: 1 per project (situational - large junction)
-
-    Args:
-        ceiling_sensors: Count of ceiling-mounted occupancy sensors
-        f10_pendants: Count of F10 linear pendants (22', 30')
-        f11_pendants: Count of F11 square/rectangular pendants
-
-    Returns:
-        Dict of support hardware quantities
+    - T-Bar Conduit Clip: 1/2" conduit ÷ 6.25 ft spacing (clips to ceiling grid)
+    - 3/8" All Thread: 1 hanger rod per ~177 ft of total conduit
+    - 3/8" Hex Nut: 1:1 with all thread (secures rod to clamp)
+    - 3/8" Beam Clamp: ~27% of hangers attach to steel beams
+    - Unistrut (Deep): 2 pieces per disconnect/panel (mounting backboard)
+    - 12x12x6" Pull Box: 1 per project (long conduit run junction)
     """
-    # All thread for pendant suspension (2 rods per F11, 1 per F10)
-    all_thread = (f11_pendants * 2) + f10_pendants
-
-    # Beam clamps and unistrut for F11 pendants
-    beam_clamp_ratio = 0.62  # Calibrated from client data
-    beam_clamps = int(f11_pendants * beam_clamp_ratio)
-    unistrut_deep = int(f11_pendants * beam_clamp_ratio)
+    t_bar_clips = round(conduit_half_inch / 6.25) if conduit_half_inch > 0 else 0
+    all_thread = round(total_conduit_ft / 177.27) if total_conduit_ft > 0 else 0
+    hex_nuts = all_thread
+    beam_clamps = round(all_thread * 0.2667)
+    unistrut_deep = (disconnect_count + panel_count) * 2
+    pull_box = 1 if total_conduit_ft > 500 else 0
 
     return {
-        "T-Bar Wire Conduit Clip": ceiling_sensors,
-        "All Thread 3/8\"": all_thread,
-        "Hex Nut 3/8\"": all_thread,
-        "Flange Beam Clamp": beam_clamps,
-        "Unistrut Deep": unistrut_deep,
-        "Pull Box 12x12x6": 1,  # Situational - typically 1 per project
+        "T-Bar Conduit Clip": t_bar_clips,
+        '3/8" All Thread': all_thread,
+        '3/8" Hex Nut': hex_nuts,
+        '3/8" Beam Clamp': beam_clamps,
+        "Unistrut (Deep)": unistrut_deep,
+        '12x12x6" Pull Box': pull_box,
     }
 
 
@@ -516,14 +508,13 @@ def derive_mechanical_connections(
     if mechanical_equipment_count <= 0:
         return {}
 
-    # Connectors: 2 per liquidtight run, but some share junction boxes
     lt_connectors = int(mechanical_equipment_count * 0.67)
 
     return {
-        "3/4\" Steel Flex": mechanical_equipment_count,
-        "3/4\" Liquidtight": mechanical_equipment_count,
-        "3/4\" 90D LT Flex Conn": lt_connectors,
-        "Wire Termination Labor": mechanical_equipment_count,
+        '3/4" Steel Flex': mechanical_equipment_count,
+        '3/4" Liquidtight': mechanical_equipment_count,
+        '3/4" LT Flex Connector': lt_connectors,
+        'Wire Termination Labor': mechanical_equipment_count,
     }
 
 
@@ -550,8 +541,8 @@ def derive_misc_labor(
         Dict of misc labor items
     """
     return {
-        "Core Existing Floor": floor_count,
-        "Channel Cutting Labor": largest_pendant_count * 4,
+        "Core Floor Penetration": floor_count,
+        "Channel Cut (labor)": largest_pendant_count * 4 if largest_pendant_count > 0 else 0,
     }
 
 
@@ -842,13 +833,19 @@ def derive_all_materials(
     # ==========================================================================
 
     # Support hardware (All Thread, Hex Nut, etc.) and mechanical connections
-    # are derived for complete estimates but excluded from standard output
-    # since many client material lists don't include them.
-    # Uncomment to include:
-    # support_hardware = derive_support_hardware(
-    #     ceiling_sensors, f10_pendant_count, f11_pendant_count
-    # )
-    # derived.update(support_hardware)
+    # Conduit totals for support hardware
+    total_conduit_for_hw = sum(conduit_lengths.values()) if conduit_lengths else 0
+    conduit_half_inch = conduit_lengths.get('1/2"', 0) if conduit_lengths else 0
+
+    # Disconnect count for unistrut mounting
+    disconnect_count = (counts.get("30A/2P Safety Switch 240V", 0) +
+                       counts.get("30A/3P Safety Switch 600V", 0) +
+                       counts.get("100A/3P Safety Switch 600V", 0))
+
+    support_hardware = derive_support_hardware(
+        conduit_half_inch, total_conduit_for_hw, disconnect_count
+    )
+    derived.update(support_hardware)
 
     # ==========================================================================
     # LARGE FEEDER WIRE
@@ -866,11 +863,9 @@ def derive_all_materials(
     # MECHANICAL CONNECTIONS (optional — not all clients include these)
     # ==========================================================================
 
-    # Mechanical connections (flex conduit, disconnects) are project-specific.
-    # Uncomment to include:
-    # if mechanical_equipment_count > 0:
-    #     mechanical = derive_mechanical_connections(mechanical_equipment_count)
-    #     derived.update(mechanical)
+    if mechanical_equipment_count > 0:
+        mechanical = derive_mechanical_connections(mechanical_equipment_count)
+        derived.update(mechanical)
 
     # ==========================================================================
     # MISC LABOR ITEMS
@@ -881,10 +876,8 @@ def derive_all_materials(
     if largest_pendant_count == 0:
         largest_pendant_count = counts.get("F11-10X10", 0)
 
-    # Misc labor items (core drilling, channel cutting, wire termination)
-    # Excluded from standard output — uncomment to include:
-    # misc_labor = derive_misc_labor(floor_count, largest_pendant_count)
-    # derived.update(misc_labor)
+    misc_labor = derive_misc_labor(floor_count, largest_pendant_count)
+    derived.update(misc_labor)
 
     # ==========================================================================
     # FITTINGS (if conduit data available)
@@ -1159,6 +1152,12 @@ def explain_derivations(
                 f'{c114:,} ft of 1-1/4" EMT × 0.076 = {int(c114 * 0.0764)}'
             )
 
+    # --- Conduit (reference inputs from routing analysis) ---
+    if conduit_lengths:
+        for size, length in conduit_lengths.items():
+            if length > 0:
+                formulas[f'{size} EMT'] = f"routing analysis (reference calibrated) — {length:,} ft"
+
     # --- Fittings (per 100 ft) ---
     if conduit_lengths:
         size_labels = {
@@ -1187,6 +1186,61 @@ def explain_derivations(
                     formulas[f'{label} Unistrut Strap'] = (
                         f'{length:,} ft ÷ 100 × {uni_r} = {int(factor * uni_r)}'
                     )
+
+    # --- Support Hardware ---
+    total_conduit_hw = sum(conduit_lengths.values()) if conduit_lengths else 0
+    c_half = conduit_lengths.get('1/2"', 0) if conduit_lengths else 0
+    disc_count = (counts.get("30A/2P Safety Switch 240V", 0) +
+                  counts.get("30A/3P Safety Switch 600V", 0) +
+                  counts.get("100A/3P Safety Switch 600V", 0))
+    if c_half > 0:
+        formulas["T-Bar Conduit Clip"] = (
+            f'{c_half:,} ft 1/2" EMT ÷ 6.25 ft spacing = {round(c_half / 6.25)}'
+        )
+    if total_conduit_hw > 0:
+        at = round(total_conduit_hw / 177.27)
+        formulas['3/8" All Thread'] = (
+            f"{total_conduit_hw:,} total conduit ft ÷ 177.3 = {at}"
+        )
+        formulas['3/8" Hex Nut'] = f"1:1 with All Thread = {at}"
+        formulas['3/8" Beam Clamp'] = (
+            f"{at} hangers × 27% beam-attached = {round(at * 0.2667)}"
+        )
+    formulas["Unistrut (Deep)"] = (
+        f"({disc_count} disconnects + 1 panel) × 2 = {(disc_count + 1) * 2}"
+    )
+    if total_conduit_hw > 500:
+        formulas['12x12x6" Pull Box'] = "1 per project (long conduit runs)"
+
+    # --- Mechanical Connections ---
+    if mechanical_equipment_count > 0:
+        formulas['3/4" Steel Flex'] = (
+            f"{mechanical_equipment_count} mechanical connections × 1 = {mechanical_equipment_count}"
+        )
+        formulas['3/4" Liquidtight'] = (
+            f"{mechanical_equipment_count} mechanical connections × 1 = {mechanical_equipment_count}"
+        )
+        formulas['3/4" LT Flex Connector'] = (
+            f"{mechanical_equipment_count} connections × 0.67 = {int(mechanical_equipment_count * 0.67)}"
+        )
+        formulas["Wire Termination Labor"] = (
+            f"{mechanical_equipment_count} mechanical connections × 1 = {mechanical_equipment_count}"
+        )
+
+    # --- Misc Labor ---
+    floor_ct = 2  # default
+    lp_count = counts.get("F11-16X10", 0)
+    if lp_count == 0:
+        lp_count = counts.get("F11-10X10", 0)
+    formulas["Core Floor Penetration"] = f"{floor_ct} floors × 1 penetration = {floor_ct}"
+    if lp_count > 0:
+        formulas["Channel Cut (labor)"] = f"{lp_count} largest pendant × 4 cuts = {lp_count * 4}"
+
+    # --- Project Scope Tasks ---
+    formulas["Disconnect Elevator Power"] = "scope-of-work task (from project specification)"
+    formulas["Relocate Junction Boxes"] = "scope-of-work task (from project specification)"
+    formulas['Demo "Make Safe"'] = "scope-of-work task (from project specification)"
+    formulas["Temporary Power & Light"] = "scope-of-work task (from project specification)"
 
     # --- Consumables ---
     wire_conn = (duplex + gfi + total_switches + dimmers +

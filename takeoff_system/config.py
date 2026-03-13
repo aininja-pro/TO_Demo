@@ -406,20 +406,8 @@ IVCC_CETLA_CONFIG = ProjectConfig(
         # Technology
         "technology.Cat 6 Jack": 92,
     },
-    # Additional items not yet auto-derived (hardware, labor, project tasks)
+    # Additional items: project-specific tasks (not derivable from counts)
     reference_additional_items={
-        '3/4" Steel Flex': 6,
-        '3/4" Liquidtight': 6,
-        '3/4" LT Flex Connector': 4,
-        'Core Floor Penetration': 2,
-        'T-Bar Conduit Clip': 16,
-        '3/8" All Thread': 30,
-        '3/8" Hex Nut': 30,
-        '3/8" Beam Clamp': 8,
-        '12x12x6" Pull Box': 1,
-        'Unistrut (Deep)': 8,
-        'Wire Termination Labor': 6,
-        'Channel Cut (labor)': 4,
         'Disconnect Elevator Power': 1,
         'Relocate Junction Boxes': 1,
         'Demo "Make Safe"': 1,
