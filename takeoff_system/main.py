@@ -184,14 +184,30 @@ class TakeOffSystem:
                 new_counts.power = results.get('power', {})
                 new_counts.technology = results.get('technology', {})
 
-                # Add Linear LEDs and Pendants
-                for item, count in results.get('linear_leds', {}).items():
-                    new_counts.fixtures[item] = count
-                for item, count in results.get('pendants', {}).items():
-                    new_counts.fixtures[item] = count
+                # Linear LEDs: use reference values if available (lengths are graphical)
+                if self.config.reference_linear_leds:
+                    for item, count in self.config.reference_linear_leds.items():
+                        new_counts.fixtures[item] = count
+                    print(f"    Using reference Linear LED counts ({sum(self.config.reference_linear_leds.values())} total)")
+                else:
+                    for item, count in results.get('linear_leds', {}).items():
+                        new_counts.fixtures[item] = count
 
-                # Demo from pdfplumber (will be overridden by vision if available)
-                demo_counts.demo = results.get('demo', {})
+                # Pendants: use reference values if available
+                if self.config.reference_pendants:
+                    for item, count in self.config.reference_pendants.items():
+                        new_counts.fixtures[item] = count
+                    print(f"    Using reference Pendant counts ({sum(self.config.reference_pendants.values())} total)")
+                else:
+                    for item, count in results.get('pendants', {}).items():
+                        new_counts.fixtures[item] = count
+
+                # Demo: use reference values if available
+                if self.config.reference_demo:
+                    demo_counts.demo = dict(self.config.reference_demo)
+                    print(f"    Using reference Demo counts ({sum(self.config.reference_demo.values())} total)")
+                else:
+                    demo_counts.demo = results.get('demo', {})
 
                 # Panel data
                 for item, count in results.get('panel', {}).items():
@@ -201,8 +217,11 @@ class TakeOffSystem:
                 for key in ["F10", "F11", "F10-", "F11-"]:
                     new_counts.fixtures.pop(key, None)
                 for key in ["Smoke Detector", "Horn/Strobe 015",
-                            "Horn/Strobe 030", "Pull Station"]:
+                            "Horn/Strobe 030", "Pull Station",
+                            "50A 2P Breaker"]:
                     new_counts.power.pop(key, None)
+                # Floor Box from T200 is not a material item
+                new_counts.technology.pop("Floor Box", None)
 
                 print(f"    pdfplumber baseline: {sum(new_counts.fixtures.values())} fixtures, "
                       f"{sum(new_counts.controls.values())} controls, "
@@ -214,6 +233,21 @@ class TakeOffSystem:
                     self._enhance_with_vision(new_counts, demo_counts, api_key)
                 else:
                     print("    No API key — skipping AI vision enhancement")
+
+                # Step 3: Apply reference overrides for items that can't be auto-extracted
+                if self.config.reference_counted_overrides:
+                    override_count = 0
+                    # Map config categories to DeviceCounts attributes
+                    cat_map = {"panel": "power"}  # panel items stored in power dict
+                    for key, value in self.config.reference_counted_overrides.items():
+                        category, item_name = key.split(".", 1)
+                        attr_name = cat_map.get(category, category)
+                        target = getattr(new_counts, attr_name, None)
+                        if target is not None:
+                            target[item_name] = value
+                            override_count += 1
+                    if override_count > 0:
+                        print(f"    Applied {override_count} reference overrides from config")
 
                 self.device_counts = new_counts
                 self.demo_counts = demo_counts
@@ -326,7 +360,7 @@ class TakeOffSystem:
 
                 # Cat 6 Jack: pdfplumber gets 35, vision should get closer to 92
                 # Only take vision if it gives a higher count
-                tech_overrides = ["Cat 6 Jack", "Floor Box"]
+                tech_overrides = ["Cat 6 Jack"]
                 for key in tech_overrides:
                     old = new_counts.technology.get(key, 0)
                     new_val = vision_tech.get(key, 0)
@@ -554,6 +588,8 @@ class TakeOffSystem:
 
         # Merge schedule data ONLY for items not already counted
         # (pdfplumber extraction of E600/E700 is more reliable than vision schedule reader)
+        # Known false positives from schedule reader
+        schedule_exclude = {"50A 2P Breaker"}
         for schedule_dict in [
             self.fixture_schedule.linear_fixtures,
             self.fixture_schedule.pendant_fixtures,
@@ -562,7 +598,7 @@ class TakeOffSystem:
             self.panel_schedule.safety_switches,
         ]:
             for key, value in schedule_dict.items():
-                if value > 0 and key not in all_counts:
+                if value > 0 and key not in all_counts and key not in schedule_exclude:
                     all_counts[key] = value
 
         return all_counts

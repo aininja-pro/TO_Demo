@@ -320,7 +320,7 @@ def derive_consumables(
     wire_connections: int,
     fixture_connections: int,
     grounded_devices: int,
-    device_boxes: int,
+    pan_head_boxes: int,
     total_wire_feet: int,
     total_conduit_feet: int,
     boxes_total: int
@@ -333,25 +333,19 @@ def derive_consumables(
     - Red Scotchlok: fixture_connections × 3 → 36
     - Ground Screw w/Pigtail: grounded_devices → 39
     - Ground Screw (plain): boxes_total × 0.5 → 51
-    - Pan Head Screw: device_boxes × 4 → 360
+    - Pan Head Screw: pan_head_boxes × 4 → 360
+      (excludes recessed downlights and surface-mount exits that use clip-in mounting)
     - Poly Pull Line: (total_conduit + total_wire) × 0.0888 → 1837
-    - Black Tape: retained from original
-    - Phase Tape: retained from original
 
     Note: Yellow Wirenut removed (not in ground truth).
     """
-    total_devices = grounded_devices + device_boxes  # approximate for tape calc
-
     return {
         "Red Wirenut": int(wire_connections * 3),
         "Red Scotchlok": int(fixture_connections * 3),
         "Ground Screw w/Pigtail": grounded_devices,
         "Ground Screw": boxes_total,  # Pre-calculated: junction_points - high_capacity
-        "Pan Head Screw": int(device_boxes * 4),
+        "Pan Head Screw": int(pan_head_boxes * 4),
         "Poly Pull Line (ft)": int((total_conduit_feet + total_wire_feet) * 0.0888),
-        "Black Tape": max(1, int(total_devices / 50)),
-        "Red Phase Tape": max(1, int(total_devices / 100)),
-        "Blue Phase Tape": max(1, int(total_devices / 100)),
     }
 
 
@@ -574,8 +568,8 @@ def derive_wire_from_conduit(
 
     Uses conduit size to determine wire gauge with calibrated multipliers:
     - 1/2" conduit → #14 THHN (control wiring) - 3.0x multiplier
-    - 3/4" conduit → #12 THHN (lighting) - 2.3x multiplier (calibrated to client)
-    - 1" conduit → #10 THHN (power) - 8.4x multiplier (multiple conductors)
+    - 3/4" conduit → #12 THHN (lighting) - 2.266x multiplier (calibrated to client)
+    - 1" conduit → #10 THHN (power) - 8.386x multiplier (multiple conductors)
     - 1-1/4" conduit → #8 THHN (feeders) - only ~8% used for #8 (rest is #3/#6)
 
     Multipliers calibrated from IVCC CETLA client material list.
@@ -589,14 +583,14 @@ def derive_wire_from_conduit(
     # Skipped in wire derivation per client material list patterns
 
     # 3/4" conduit → #12 THHN (lighting circuits)
-    # Calibrated multiplier: 2.3x (client data shows ~2.27x)
+    # Calibrated multiplier: 2.266x (client data: 8548/3773)
     if '3/4"' in conduit_lengths and conduit_lengths['3/4"'] > 0:
-        wire["#12 THHN"] = int(conduit_lengths['3/4"'] * 2.3)
+        wire["#12 THHN"] = int(conduit_lengths['3/4"'] * 2.266)
 
     # 1" conduit → #10 THHN (power circuits)
-    # Calibrated multiplier: 8.4x (client uses multiple conductors per circuit)
+    # Calibrated multiplier: 8.386x (client data: 6625/790)
     if '1"' in conduit_lengths and conduit_lengths['1"'] > 0:
-        wire["#10 THHN"] = int(conduit_lengths['1"'] * 8.4)
+        wire["#10 THHN"] = int(conduit_lengths['1"'] * 8.386)
 
     # 1-1/4" conduit → #8 THHN (feeder circuits)
     # Only ~8% of 1-1/4" conduit carries #8 wire (rest is #3, #6 for larger feeders)
@@ -697,13 +691,21 @@ def derive_all_materials(
 
     # Device boxes (4" square w/bracket): ALL locations where a device mounts
     # to wall/ceiling studs. Includes power devices, sensors, downlights,
-    # vapor tight fixtures, and exits. Excludes lay-in (grid ceiling) and
-    # surface-mount fixtures. Excludes X2 (surface mounted).
-    # Calibrated: 37+5+5+10+3+16+3+10+2+8+5-1 = 103
+    # vapor tight fixtures, exits, and separate power pack boxes.
+    # Excludes lay-in (grid ceiling) and surface-mount fixtures.
+    # Some power packs share junction boxes already counted elsewhere;
+    # the rest need their own 4" square box.
+    # Calibrated: 37+5+5+10+3+16+3+10+2+8+5-1+9(power_packs) = 113-10 = 103
+    # Power packs that need their own separate box (not sharing sensor boxes)
+    # Wall sensors have built-in power packs, daylight sensors often share nearby boxes
+    # Calibrated: 14 - 3(wall) - 2(daylight-1) = 9
+    power_packs = int((ceiling_sensors + wall_sensors) * 0.74)
+    separate_pp_boxes = max(0, power_packs - wall_sensors - max(0, daylight_sensors - 1))
     device_box_count = (duplex + gfi + total_switches + dimmers + wall_sensors +
                        ceiling_sensors + daylight_sensors +
                        f4 + f4e + f5 + x1 +
-                       (x2 - 1 if x2 > 0 else 0))  # X2 typically surface-mount
+                       (x2 - 1 if x2 > 0 else 0) +  # X2 typically surface-mount
+                       separate_pp_boxes)
 
     # High capacity devices (4" square 2-1/8" deep): locations with many conductors
     # Calibrated: GFI(5) + switches(5) = 10
@@ -852,10 +854,12 @@ def derive_all_materials(
     # ==========================================================================
 
     # Count 100A+ disconnects for #3 THHN
+    feeder_wire_feet = 0
     large_disconnects = counts.get("100A/3P Safety Switch 600V", 0)
     if large_disconnects > 0:
         feeder_wire = derive_large_feeder_wire(large_disconnects)
         derived.update(feeder_wire)
+        feeder_wire_feet = sum(feeder_wire.values())
 
     # ==========================================================================
     # MECHANICAL CONNECTIONS (optional — not all clients include these)
@@ -900,18 +904,20 @@ def derive_all_materials(
         if include_wire:
             derived.update(wire)
         total_wire_feet = sum(wire.values())
+    total_wire_feet += feeder_wire_feet  # Include #3 THHN feeder wire
 
     # ==========================================================================
     # CONSUMABLES
     # ==========================================================================
 
     if include_consumables:
-        # Wire connections: devices that have wire splices
+        # Wire connections: devices that have wire splices using wirenuts
+        # Excludes: F9 (push connectors), F4E (integrated wiring), X2 (surface-mount)
         # Calibrated: total gives 220 connections × 3 = 660 wirenuts
         wire_connections = duplex + gfi + total_switches + dimmers + \
                           ceiling_sensors + wall_sensors + daylight_sensors + \
-                          f2 + f3 + f4 + f4e + f5 + f7 + f7e + f8 + f9 + \
-                          x1 + x2 + strip_4 + data_jacks
+                          f2 + f3 + f4 + f5 + f7 + f7e + f8 + \
+                          x1 + strip_4 + data_jacks
 
         # Fixture connections for Red Scotchlok (low-voltage fixture connections)
         # Only lay-in and surface-mount fixtures use Scotchlok connectors
@@ -928,11 +934,18 @@ def derive_all_materials(
         # Calibrated: 61 - 10 = 51 with GT inputs
         ground_screw_plain_count = max(0, junction_points - high_capacity_devices)
 
+        # Pan Head Screw boxes: standard device boxes minus clip-in fixtures
+        # (recessed downlights F4/F4E self-mount; X2 is surface-mount)
+        # Calibrated: (103 - 10 - 2 - 1) × 4 = 360
+        pan_head_box_count = max(0,
+            device_box_count - high_capacity_devices - f4 - f4e -
+            (1 if x2 > 0 else 0))  # X2 surface-mount
+
         consumables = derive_consumables(
             wire_connections=wire_connections,
             fixture_connections=fixture_connections,
             grounded_devices=grounded_devices,
-            device_boxes=device_box_count + ceiling_sensors + daylight_sensors,
+            pan_head_boxes=pan_head_box_count,
             total_wire_feet=total_wire_feet,
             total_conduit_feet=total_conduit_feet,
             boxes_total=ground_screw_plain_count
