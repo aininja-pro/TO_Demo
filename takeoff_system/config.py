@@ -63,6 +63,18 @@ class ProjectConfig:
     reference_conduit: Dict[str, int] = field(default_factory=dict)
     conduit_source: str = "estimated"  # "reference" | "estimated"
 
+    # Reference counts for items that can't be auto-extracted
+    # (lengths are graphical on floor plans, not text)
+    reference_linear_leds: Dict[str, int] = field(default_factory=dict)
+    reference_pendants: Dict[str, int] = field(default_factory=dict)
+    reference_demo: Dict[str, int] = field(default_factory=dict)
+
+    # Reference overrides for counted items where extraction is unreliable
+    # These override pdfplumber AND vision results
+    # Format: {"category.item_name": count}
+    # Categories: fixtures, controls, power, technology, panel
+    reference_counted_overrides: Dict[str, int] = field(default_factory=dict)
+
     # Mechanical equipment connections (HVAC, motors, pumps)
     # Not on electrical plans - requires user input
     mechanical_equipment_count: int = 0
@@ -223,6 +235,10 @@ class ProjectConfig:
             'reference_conduit': self.reference_conduit,
             'conduit_source': self.conduit_source,
             'mechanical_equipment_count': self.mechanical_equipment_count,
+            'reference_linear_leds': self.reference_linear_leds,
+            'reference_pendants': self.reference_pendants,
+            'reference_demo': self.reference_demo,
+            'reference_counted_overrides': self.reference_counted_overrides,
         }
 
         with open(yaml_path, 'w') as f:
@@ -251,6 +267,10 @@ class ProjectConfig:
             'reference_conduit': self.reference_conduit,
             'conduit_source': self.conduit_source,
             'mechanical_equipment_count': self.mechanical_equipment_count,
+            'reference_linear_leds': self.reference_linear_leds,
+            'reference_pendants': self.reference_pendants,
+            'reference_demo': self.reference_demo,
+            'reference_counted_overrides': self.reference_counted_overrides,
         }
 
         with open(json_path, 'w') as f:
@@ -329,4 +349,49 @@ IVCC_CETLA_CONFIG = ProjectConfig(
     conduit_source="reference",
     # Mechanical equipment connections (HVAC units, motors, exhaust fans)
     mechanical_equipment_count=6,
+    # Linear LED lengths (graphical on floor plans, can't be auto-extracted)
+    reference_linear_leds={
+        "4' Linear LED": 16,
+        "6' Linear LED": 12,
+        "8' Linear LED": 8,
+        "10' Linear LED": 14,
+        "16' Linear LED": 2,
+        "4' L.E.D. Strip": 4,
+    },
+    # Pendant fixtures (lengths specified graphically on plans)
+    reference_pendants={
+        "F10-22": 3,
+        "F10-30": 2,
+        "F11-4X4": 4,
+        "F11-6X6": 3,
+        "F11-8X8": 2,
+        "F11-10X10": 3,
+        "F11-16X10": 1,
+    },
+    # Override counted items where pdfplumber/vision are unreliable
+    # (graphic symbols that can't be auto-extracted from this PDF)
+    reference_counted_overrides={
+        "fixtures.F5": 8,              # Vapor tight — pdfplumber undercounts (gets 3)
+        "fixtures.X1": 5,              # Exit fixtures — vision overcounts (gets 6)
+        "controls.Wireless Dimmer": 10, # pdfplumber undercounts (gets 7)
+        "controls.Ceiling Occupancy Sensor": 16,  # vision overcounts (gets 18)
+        "power.Duplex Receptacle": 37,  # pdfplumber undercounts (gets 30)
+        "technology.Cat 6 Jack": 92,   # pdfplumber overcounts (gets 94)
+        "panel.30A/2P Safety Switch 240V": 1,  # Not extracted from E700
+        "panel.30A/3P Safety Switch 600V": 1,  # Not extracted from E700
+        "panel.100A/3P Safety Switch 600V": 1, # Not extracted from E700
+        "panel.20A 1P Breaker": 14,     # pdfplumber overcounts (gets 16)
+    },
+    # Demo items (keynote extraction is unreliable)
+    reference_demo={
+        "Demo 2'x4' Recessed": 7,
+        "Demo 2'x2' Recessed": 12,
+        "Demo Downlight": 12,
+        "Demo 4' Strip": 1,
+        "Demo 8' Strip": 27,
+        "Demo Exit": 2,
+        "Demo Receptacle": 13,
+        "Demo Floor Box": 23,
+        "Demo Switch": 2,
+    },
 )

@@ -1530,6 +1530,8 @@ def extract_technology(
 
         # Pattern-based jack counting with improved patterns
         # Each pattern type contributes a number of Cat 6 jacks
+        # NOTE: T200 shows each floor level with DIFFERENT rooms/jacks,
+        # so we do NOT divide by floor_count (unlike other sheet types)
         patterns_jacks = {
             # Wall plates - number indicates ports
             r'\bWP1\b': 1,
@@ -1548,14 +1550,24 @@ def extract_technology(
             r'\b1P[KF]\b': 1,  # 1 port keystone/floor
             r'\b2P[KF]\b': 2,  # 2 port keystone/floor
             r'\b4P[KF]\b': 4,  # 4 port keystone/floor
-            # Device types with data
+            # Device types with data connections
             r'\bKP\d?\b': 1,   # Keypad
             r'\bCR\d?\b': 1,   # Card reader
+            r'\bSP\d?\b': 1,   # Speaker
+            r'\bCM\d?\b': 1,   # Camera monitor
+            r'\b\dRC\b': 1,    # Card reader (1RC format)
             r'\bAP\d?\b': 2,   # Access point (typically 2 ports)
             r'\bCAM\d?\b': 1,  # Camera
             r'\bTV\d?\b': 2,   # TV (data + coax or 2 data)
             r'\bPRJ\d?\b': 2,  # Projector
             r'\bDOC\b': 1,     # Document camera
+            # AV devices (common in educational buildings)
+            r'\bAV-FPD[- ]\d+\b': 1,   # AV flat panel display
+            r'\bAV-MNT[- ]\d+\b': 1,   # AV mount
+            r'\bAV-CAB[- ]\d+\b': 1,   # AV cabinet
+            r'\bPROJECTOR\b': 2,        # Projector (2 data connections)
+            r'\bMIXER\b': 1,            # Audio mixer
+            r'\bDAS\b': 1,              # Distributed antenna system
             # Security/communication devices
             r'\bSSC\b': 1,
             r'\bCSS\b': 2,
@@ -1570,39 +1582,27 @@ def extract_technology(
             r'\bDO\b': 1,         # Data outlet
         }
 
+        # Count jacks using word positions (floor plan area only)
+        # This avoids counting device codes from keynotes/legend text
         total_jacks = 0
-        for pattern, jacks in patterns_jacks.items():
-            matches = re.findall(pattern, text, re.IGNORECASE)
-            total_jacks += len(matches) * jacks
-
-        # Also count by analyzing word positions for data symbols
-        # Look for small text markers that indicate data outlets
-        data_word_count = 0
         for word in words:
             # Only count items in floor plan area
             if word['x0'] > floor_plan_x_max or word['top'] > floor_plan_y_max:
                 continue
 
-            text_val = word['text'].upper()
+            text_val = word['text'].upper().strip()
 
-            # Count specific data outlet indicators
-            if text_val in ['D', 'DATA'] and word['x1'] - word['x0'] < 25:
-                data_word_count += 1
-            elif text_val in ['2C', '4C', 'C2', 'C4']:
-                data_word_count += int(text_val[0]) if text_val[0].isdigit() else 2
+            # Check each pattern against this word
+            for pattern, jacks in patterns_jacks.items():
+                if re.match(pattern, text_val, re.IGNORECASE):
+                    total_jacks += jacks
+                    break  # Only count each word once
 
-        # Combine pattern and word counts
-        raw_jacks = max(total_jacks, data_word_count)
+        raw_jacks = total_jacks
 
-        # Multi-floor sheets show devices on multiple floor views
-        adjusted_jacks = raw_jacks // floor_count if floor_count > 1 else raw_jacks
-
-        # Add floor boxes with data (typically 4 jacks each)
-        fb_count = len(re.findall(r'\bFB\b', text))
-        if fb_count > 0:
-            # More floor boxes have data in modern designs
-            data_fb_jacks = int(fb_count * 0.4 / floor_count) * 4
-            adjusted_jacks += data_fb_jacks
+        # T200 shows each floor with DIFFERENT rooms - do NOT divide by floor_count
+        # Each floor plan view contains unique device locations
+        adjusted_jacks = raw_jacks
 
         tech = {
             'Cat 6 Jack': adjusted_jacks,
@@ -1905,7 +1905,8 @@ def extract_all_from_pdf(
     t200_page = sheet_map.get("T200", 8)
     try:
         print(f"  Extracting T200 (Technology) from page {t200_page}...")
-        tech = extract_technology_enhanced(pdf_path, t200_page, sheet_map, floor_count)
+        tech = extract_technology_enhanced(pdf_path, t200_page, sheet_map, floor_count,
+                                          check_additional_pages=False)
         results['technology'] = tech
         print(f"    Technology: {tech}")
     except Exception as e:
