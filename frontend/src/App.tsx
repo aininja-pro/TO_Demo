@@ -3,6 +3,8 @@ import { useTakeoff } from './hooks/useTakeoff'
 import { Header } from './components/Header'
 import { UploadZone } from './components/UploadZone'
 import { PipelineProgress } from './components/PipelineProgress'
+import { ResultsDashboard } from './components/ResultsDashboard'
+import { Button } from './components/ui/button'
 
 export default function App() {
   const {
@@ -19,10 +21,6 @@ export default function App() {
 
   const [filename, setFilename] = useState<string | null>(null)
 
-  // Placeholder until Phase 5
-  void results
-  void reset
-
   function handleUpload(file: File) {
     setFilename(file.name)
     uploadAndProcess(file)
@@ -30,7 +28,13 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#f8fafc]">
-      <Header />
+      <Header>
+        {state === 'results' && (
+          <Button variant="outline" size="sm" className="text-white border-white/30 hover:bg-white/10" onClick={reset}>
+            New Takeoff
+          </Button>
+        )}
+      </Header>
       <main className="max-w-6xl mx-auto px-6 py-10">
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-center">
@@ -48,10 +52,8 @@ export default function App() {
             filename={filename ?? undefined}
           />
         )}
-        {state === 'results' && (
-          <div className="text-center text-muted-foreground">
-            <p className="text-lg">Results dashboard coming in Phase 5</p>
-          </div>
+        {state === 'results' && results && (
+          <ResultsDashboard results={results} />
         )}
       </main>
     </div>
