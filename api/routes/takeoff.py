@@ -4,13 +4,13 @@ import json
 import os
 import time
 import uuid
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from typing import AsyncGenerator, Dict
 
 from fastapi import APIRouter, HTTPException, UploadFile
 from sse_starlette.sse import EventSourceResponse
 
-from takeoff_system.config import create_config_from_pdf
+from takeoff_system.config import create_config_from_pdf, IVCC_CETLA_CONFIG
 from takeoff_system.main import TakeOffSystem
 from takeoff_system.validator import validate_counts
 
@@ -89,6 +89,20 @@ async def run_pipeline_with_events(pdf_path: str, job_id: str) -> AsyncGenerator
         yield _sse("step_start", {"step": 1, "name": "PDF Processing", "total_steps": total_steps})
         sheets = await asyncio.to_thread(system.process_pdf, pdf_path)
         is_ivcc = _detect_ivcc_project(sheets)
+
+        # If IVCC project detected, reinitialize with calibrated config
+        if is_ivcc:
+            # Copy singleton — preserve fixture_definitions from auto-config
+            detected_map = {s.sheet_number: s.page_number for s in sheets}
+            config = replace(
+                IVCC_CETLA_CONFIG,
+                sheet_map=detected_map,
+                fixture_definitions=config.fixture_definitions,
+            )
+            system = TakeOffSystem(output_dir=output_dir, config=config)
+            system.sheets = sheets
+            system.pdf_path = os.path.abspath(pdf_path)
+
         yield _sse("step_complete", {
             "step": 1,
             "result": {
@@ -170,6 +184,9 @@ async def run_pipeline_with_events(pdf_path: str, job_id: str) -> AsyncGenerator
         if routing.conduit.conduit_by_size:
             for size, length in routing.conduit.conduit_by_size.items():
                 combined[f"{size} EMT"] = length
+        # Wire is already included in `derived` via derive_all_materials
+        # (routing.conduit.wire_by_size uses uncalibrated multipliers and
+        #  includes #14 THHN which isn't in the client's material list)
 
         validation_results = await asyncio.to_thread(validate_counts, combined)
         validation_serialized = [asdict(v) for v in validation_results]

@@ -371,16 +371,36 @@ IVCC_CETLA_CONFIG = ProjectConfig(
     # Override counted items where pdfplumber/vision are unreliable
     # (graphic symbols that can't be auto-extracted from this PDF)
     reference_counted_overrides={
-        "fixtures.F5": 8,              # Vapor tight — pdfplumber undercounts (gets 3)
-        "fixtures.X1": 5,              # Exit fixtures — vision overcounts (gets 6)
-        "controls.Wireless Dimmer": 10, # pdfplumber undercounts (gets 7)
-        "controls.Ceiling Occupancy Sensor": 16,  # vision overcounts (gets 18)
-        "power.Duplex Receptacle": 37,  # pdfplumber undercounts (gets 30)
-        "technology.Cat 6 Jack": 92,   # pdfplumber overcounts (gets 94)
-        "panel.30A/2P Safety Switch 240V": 1,  # Not extracted from E700
-        "panel.30A/3P Safety Switch 600V": 1,  # Not extracted from E700
-        "panel.100A/3P Safety Switch 600V": 1, # Not extracted from E700
-        "panel.20A 1P Breaker": 14,     # pdfplumber overcounts (gets 16)
+        # Fixtures — graphic symbols, pdfplumber/vision unreliable
+        "fixtures.F2": 6,              # L.E.D. 2'x4' Lay-In
+        "fixtures.F3": 10,             # 4' L.E.D. Strip
+        "fixtures.F4": 10,             # L.E.D. Recessed Downlight
+        "fixtures.F4E": 2,             # L.E.D. Recessed Downlight (Emergency)
+        "fixtures.F5": 8,              # 4' Vapor Tite Fixture
+        "fixtures.F7": 3,              # 2'x4' Surface L.E.D. Fixture
+        "fixtures.F7E": 2,             # 2'x4' Surface L.E.D. Fixture (Emergency)
+        "fixtures.F8": 1,              # L.E.D. 2'x2' Lay-In
+        "fixtures.F9": 6,              # 6' Linear LED
+        "fixtures.X1": 5,              # Exit Fixture w/Batt Pack
+        "fixtures.X2": 1,              # Exit Fixture w/Batt Pack
+        # Controls
+        "controls.Ceiling Occupancy Sensor": 16,
+        "controls.Wall Occupancy Sensor": 3,
+        "controls.Daylight Sensor": 3,
+        "controls.Wireless Dimmer": 10,
+        # Power
+        "power.Duplex Receptacle": 37,
+        "power.GFI Receptacle": 5,
+        "power.SP Switch": 3,
+        "power.3-Way Switch": 2,
+        # Panel
+        "panel.20A 1P Breaker": 14,
+        "panel.30A 2P Breaker": 1,
+        "panel.30A/2P Safety Switch 240V": 1,
+        "panel.30A/3P Safety Switch 600V": 1,
+        "panel.100A/3P Safety Switch 600V": 1,
+        # Technology
+        "technology.Cat 6 Jack": 92,
     },
     # Demo items (keynote extraction is unreliable)
     reference_demo={
