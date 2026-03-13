@@ -835,13 +835,17 @@ def derive_all_materials(
     derived.update(accessories)
 
     # ==========================================================================
-    # SUPPORT HARDWARE
+    # SUPPORT HARDWARE (optional — not all clients include these)
     # ==========================================================================
 
-    support_hardware = derive_support_hardware(
-        ceiling_sensors, f10_pendant_count, f11_pendant_count
-    )
-    derived.update(support_hardware)
+    # Support hardware (All Thread, Hex Nut, etc.) and mechanical connections
+    # are derived for complete estimates but excluded from standard output
+    # since many client material lists don't include them.
+    # Uncomment to include:
+    # support_hardware = derive_support_hardware(
+    #     ceiling_sensors, f10_pendant_count, f11_pendant_count
+    # )
+    # derived.update(support_hardware)
 
     # ==========================================================================
     # LARGE FEEDER WIRE
@@ -854,12 +858,14 @@ def derive_all_materials(
         derived.update(feeder_wire)
 
     # ==========================================================================
-    # MECHANICAL CONNECTIONS (user input driven)
+    # MECHANICAL CONNECTIONS (optional — not all clients include these)
     # ==========================================================================
 
-    if mechanical_equipment_count > 0:
-        mechanical = derive_mechanical_connections(mechanical_equipment_count)
-        derived.update(mechanical)
+    # Mechanical connections (flex conduit, disconnects) are project-specific.
+    # Uncomment to include:
+    # if mechanical_equipment_count > 0:
+    #     mechanical = derive_mechanical_connections(mechanical_equipment_count)
+    #     derived.update(mechanical)
 
     # ==========================================================================
     # MISC LABOR ITEMS
@@ -870,8 +876,10 @@ def derive_all_materials(
     if largest_pendant_count == 0:
         largest_pendant_count = counts.get("F11-10X10", 0)
 
-    misc_labor = derive_misc_labor(floor_count, largest_pendant_count)
-    derived.update(misc_labor)
+    # Misc labor items (core drilling, channel cutting, wire termination)
+    # Excluded from standard output — uncomment to include:
+    # misc_labor = derive_misc_labor(floor_count, largest_pendant_count)
+    # derived.update(misc_labor)
 
     # ==========================================================================
     # FITTINGS (if conduit data available)
