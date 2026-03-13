@@ -75,6 +75,10 @@ class ProjectConfig:
     # Categories: fixtures, controls, power, technology, panel
     reference_counted_overrides: Dict[str, int] = field(default_factory=dict)
 
+    # Additional items not yet auto-derived (hardware, labor, project tasks)
+    # These are project-specific items from the contractor's bid
+    reference_additional_items: Dict[str, int] = field(default_factory=dict)
+
     # Mechanical equipment connections (HVAC, motors, pumps)
     # Not on electrical plans - requires user input
     mechanical_equipment_count: int = 0
@@ -401,6 +405,25 @@ IVCC_CETLA_CONFIG = ProjectConfig(
         "panel.100A/3P Safety Switch 600V": 1,
         # Technology
         "technology.Cat 6 Jack": 92,
+    },
+    # Additional items not yet auto-derived (hardware, labor, project tasks)
+    reference_additional_items={
+        '3/4" Steel Flex': 6,
+        '3/4" Liquidtight': 6,
+        '3/4" LT Flex Connector': 4,
+        'Core Floor Penetration': 2,
+        'T-Bar Conduit Clip': 16,
+        '3/8" All Thread': 30,
+        '3/8" Hex Nut': 30,
+        '3/8" Beam Clamp': 8,
+        '12x12x6" Pull Box': 1,
+        'Unistrut (Deep)': 8,
+        'Wire Termination Labor': 6,
+        'Channel Cut (labor)': 4,
+        'Disconnect Elevator Power': 1,
+        'Relocate Junction Boxes': 1,
+        'Demo "Make Safe"': 1,
+        'Temporary Power & Light': 1,
     },
     # Demo items (keynote extraction is unreliable)
     reference_demo={

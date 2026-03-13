@@ -994,3 +994,225 @@ def derive_materials_with_schedules(
         include_consumables=True,
         include_wire=conduit_lengths is not None
     )
+
+
+def explain_derivations(
+    counts: Dict[str, int],
+    conduit_lengths: Dict[str, int] = None,
+    mechanical_equipment_count: int = 0,
+) -> Dict[str, str]:
+    """
+    Generate human-readable formula explanations for each derived material.
+
+    Uses the same inputs as derive_all_materials but returns formula strings
+    instead of quantities. These explain HOW each number was calculated.
+    """
+    formulas: Dict[str, str] = {}
+
+    # --- Extract the same input values as derive_all_materials ---
+    ceiling_sensors = counts.get("Ceiling Occupancy Sensor", 0)
+    wall_sensors = counts.get("Wall Occupancy Sensor", 0)
+    daylight_sensors = counts.get("Daylight Sensor", 0)
+    data_jacks = counts.get("Cat 6 Jack", 0)
+    duplex = counts.get("Duplex Receptacle", 0)
+    gfi = counts.get("GFI Receptacle", 0)
+    dimmers = counts.get("Wireless Dimmer", 0)
+    sp_switches = counts.get("SP Switch", 0)
+    three_way = counts.get("3-Way Switch", 0)
+    total_switches = sp_switches + three_way
+
+    f2 = counts.get("F2", 0)
+    f3 = counts.get("F3", 0)
+    f4 = counts.get("F4", 0)
+    f4e = counts.get("F4E", 0)
+    f5 = counts.get("F5", 0)
+    f7 = counts.get("F7", 0)
+    f7e = counts.get("F7E", 0)
+    f8 = counts.get("F8", 0)
+    f9 = counts.get("F9", 0)
+    x1 = counts.get("X1", 0)
+    x2 = counts.get("X2", 0)
+    strip_4 = counts.get("4' L.E.D. Strip", 0)
+
+    linear_count = sum(counts.get(k, 0) for k in [
+        "4' Linear LED", "6' Linear LED", "8' Linear LED",
+        "10' Linear LED", "16' Linear LED",
+    ])
+    f10_count = counts.get("F10-22", 0) + counts.get("F10-30", 0)
+    f11_count = sum(counts.get(k, 0) for k in [
+        "F11-4X4", "F11-6X6", "F11-8X8", "F11-10X10", "F11-16X10",
+    ])
+    pendant_count = f10_count + f11_count
+
+    lay_in = f2 + f8
+    surface = f7 + f7e
+    power_packs = int((ceiling_sensors + wall_sensors) * 0.74)
+    sep_pp = max(0, power_packs - wall_sensors - max(0, daylight_sensors - 1))
+    device_box_count = (duplex + gfi + total_switches + dimmers + wall_sensors +
+                       ceiling_sensors + daylight_sensors +
+                       f4 + f4e + f5 + x1 + (x2 - 1 if x2 > 0 else 0) + sep_pp)
+    high_cap = gfi + total_switches
+    junction = (f2 + f3 + f7 + f7e + f8 + f9 + x1 + x2 + strip_4 +
+               f10_count + f4 + f5)
+    large_jnc = f11_count + 1
+    floor_box_jacks = 3
+    sensor_ctrl = max(0, data_jacks - floor_box_jacks)
+    two_gang = counts.get("two_gang_locations", 3)
+
+    # --- Power Packs ---
+    formulas["Power Pack"] = (
+        f"({ceiling_sensors} ceiling + {wall_sensors} wall sensors) × 0.74 = {power_packs}"
+    )
+
+    # --- Cat 6 ---
+    formulas["Cat 6 Cable (ft)"] = f"{data_jacks} jacks × {10} ft/jack = {data_jacks * 10}"
+    formulas["J-Hook"] = f"{data_jacks * 10} ft cable ÷ {4} ft spacing = {(data_jacks * 10) // 4}"
+
+    # --- Boxes ---
+    formulas['4" Square Box w/bracket'] = (
+        f"{duplex} dup + {gfi} GFI + {total_switches} sw + {dimmers} dim + "
+        f"{ceiling_sensors} ceil + {wall_sensors} wall + {daylight_sensors} day + "
+        f"fixtures({f4}+{f4e}+{f5}+{x1}) + {sep_pp} PP boxes = "
+        f"{max(0, device_box_count - high_cap)}"
+    )
+    formulas['4" Square Box'] = (
+        f"Junction points: {f2}+{f3}+{f7}+{f7e}+{f8}+{f9}+{x1}+{x2}+"
+        f"{strip_4}+{f10_count}+{f4}+{f5} = {junction}"
+    )
+    formulas['4" Square Box 2-1/8" deep'] = (
+        f"High-capacity: {gfi} GFI + {total_switches} switches = {high_cap}"
+    )
+    formulas['4-11/16" Square Box'] = f"{f11_count} F11 pendants + 1 = {large_jnc}"
+    formulas['4-11/16" Square Box w/bracket'] = (
+        f"{data_jacks} data jacks − {floor_box_jacks} floor box = {sensor_ctrl}"
+    )
+
+    # --- Plaster Rings ---
+    ring_1g = max(0, duplex + gfi + total_switches + dimmers +
+                 wall_sensors + daylight_sensors + f4 - (two_gang * 2))
+    formulas['4" Square-1G Plaster Ring'] = (
+        f"{duplex} dup + {gfi} GFI + {total_switches} sw + {dimmers} dim + "
+        f"{wall_sensors} wall + {daylight_sensors} day + {f4} F4 − {two_gang * 2} 2G = {ring_1g}"
+    )
+    formulas['4" Square-2G Plaster Ring'] = f"{two_gang} two-gang locations"
+    s_3_0 = (ceiling_sensors + daylight_sensors + f4 + f4e + f3 + strip_4 +
+            max(0, x1 - 2))
+    f_3_0 = f2 + f8 + f7 + f7e + 1
+    formulas['4" Square-3/0 Plaster Ring'] = (
+        f"Surface({s_3_0}) + Flush({f_3_0}) = {s_3_0 + f_3_0}"
+    )
+    formulas['4-11/16"-1G Plaster Ring'] = f"= sensor/control boxes = {sensor_ctrl}"
+
+    # --- Plates ---
+    formulas["Duplex Plate"] = (
+        f"{duplex} duplex − {two_gang * 2} in 2G locations = {max(0, duplex - two_gang * 2)}"
+    )
+    formulas["Decora Plate"] = f"{gfi} GFI + {wall_sensors} wall sensors = {gfi + wall_sensors}"
+    formulas["Switch Plate"] = f"{sp_switches} SP + {three_way} 3-way = {total_switches}"
+    formulas["Blank Cover"] = f"~21% of {junction} junction points = {round(junction * 0.21)}"
+    formulas["Blank Cover w/KO"] = (
+        f"~23% of {junction} junctions + {large_jnc} large = "
+        f"{int(junction * 0.23) + large_jnc}"
+    )
+    if two_gang > 0:
+        formulas["Duplex Plate 2G"] = f"{two_gang} two-gang locations"
+
+    # --- Fixture Accessories ---
+    formulas["Fixture Whip"] = f"{f2} F2 lay-in + {dimmers} dimmers = {f2 + dimmers}"
+    p_cable = pendant_count + linear_count + (f9 + f3 + strip_4 + 1)
+    formulas["Pendant/Cable"] = (
+        f"{pendant_count} pendants + {linear_count} linear + "
+        f"({f9}+{f3}+{strip_4}+1) strips = {p_cable}"
+    )
+    if f11_count > 0:
+        formulas["Seismic Wire"] = f"{f11_count} F11 pendants × 0.5 = {int(f11_count * 0.5)}"
+
+    # --- Large Feeder Wire ---
+    large_disc = counts.get("100A/3P Safety Switch 600V", 0)
+    if large_disc > 0:
+        formulas["#3 THHN"] = (
+            f"{large_disc} disconnect × 50 ft × 3 conductors = {large_disc * 50 * 3}"
+        )
+
+    # --- Wire ---
+    if conduit_lengths:
+        c34 = conduit_lengths.get('3/4"', 0)
+        c1 = conduit_lengths.get('1"', 0)
+        c114 = conduit_lengths.get('1-1/4"', 0)
+        if c34 > 0:
+            formulas["#12 THHN"] = (
+                f'{c34:,} ft of 3/4" EMT × 2.266 = {int(c34 * 2.26562):,}'
+            )
+        if c1 > 0:
+            formulas["#10 THHN"] = (
+                f'{c1:,} ft of 1" EMT × 8.386 = {int(c1 * 8.38608):,}'
+            )
+        if c114 > 0:
+            formulas["#8 THHN"] = (
+                f'{c114:,} ft of 1-1/4" EMT × 0.076 = {int(c114 * 0.0764)}'
+            )
+
+    # --- Fittings (per 100 ft) ---
+    if conduit_lengths:
+        size_labels = {
+            '1/2"': ("1/2\"", 10.0, 8.0, 10.0, 12.0, 0),
+            '3/4"': ("3/4\"", 10.47, 9.22, 10.47, 9.22, 3.075),
+            '1"': ("1\"", 4.9, 8.1, 4.9, 1.9, 10.1),
+            '1-1/4"': ("1-1/4\"", 11.8, 5.8, 11.8, 4.1, 7.3),
+        }
+        for size, length in conduit_lengths.items():
+            if size in size_labels and length > 0:
+                label, conn_r, coup_r, bush_r, strap_r, uni_r = size_labels[size]
+                factor = length / 100
+                formulas[f'{label} Connector'] = (
+                    f'{length:,} ft ÷ 100 × {conn_r} = {int(factor * conn_r)}'
+                )
+                formulas[f'{label} Coupling'] = (
+                    f'{length:,} ft ÷ 100 × {coup_r} = {int(factor * coup_r)}'
+                )
+                formulas[f'{label} Bushing'] = (
+                    f'{length:,} ft ÷ 100 × {bush_r} = {int(factor * bush_r)}'
+                )
+                formulas[f'{label} 1-Hole Strap'] = (
+                    f'{length:,} ft ÷ 100 × {strap_r} = {int(factor * strap_r)}'
+                )
+                if uni_r > 0:
+                    formulas[f'{label} Unistrut Strap'] = (
+                        f'{length:,} ft ÷ 100 × {uni_r} = {int(factor * uni_r)}'
+                    )
+
+    # --- Consumables ---
+    wire_conn = (duplex + gfi + total_switches + dimmers +
+                ceiling_sensors + wall_sensors + daylight_sensors +
+                f2 + f3 + f4 + f5 + f7 + f7e + f8 + x1 + strip_4 + data_jacks)
+    fixture_conn = lay_in + surface
+    grounded = (duplex + gfi) - two_gang
+    pan_box = max(0, device_box_count - high_cap - f4 - f4e - (1 if x2 > 0 else 0))
+    total_conduit_ft = sum(conduit_lengths.values()) if conduit_lengths else 0
+    total_wire_ft = 0
+    if conduit_lengths:
+        c34 = conduit_lengths.get('3/4"', 0)
+        c1 = conduit_lengths.get('1"', 0)
+        c114 = conduit_lengths.get('1-1/4"', 0)
+        total_wire_ft = int(c34 * 2.26562) + int(c1 * 8.38608) + int(c114 * 0.0764)
+    total_wire_ft += large_disc * 150 if large_disc > 0 else 0
+
+    formulas["Red Wirenut"] = (
+        f"{wire_conn} wire connections × 3 = {int(wire_conn * 3)}"
+    )
+    formulas["Red Scotchlok"] = (
+        f"({lay_in} lay-in + {surface} surface) × 3 = {int(fixture_conn * 3)}"
+    )
+    formulas["Ground Screw w/Pigtail"] = (
+        f"({duplex} + {gfi}) − {two_gang} shared = {grounded}"
+    )
+    formulas["Ground Screw"] = (
+        f"{junction} junction pts − {high_cap} deep boxes = {max(0, junction - high_cap)}"
+    )
+    formulas["Pan Head Screw"] = f"{pan_box} box locations × 4 = {int(pan_box * 4)}"
+    formulas["Poly Pull Line (ft)"] = (
+        f"({total_conduit_ft:,} conduit + {total_wire_ft:,} wire) × 0.089 = "
+        f"{int((total_conduit_ft + total_wire_ft) * 0.0888):,}"
+    )
+
+    return formulas

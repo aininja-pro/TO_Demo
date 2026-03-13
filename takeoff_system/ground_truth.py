@@ -224,6 +224,36 @@ GROUND_TRUTH_ACCESSORIES = {
 }
 
 # =============================================================================
+# HARDWARE & SUPPORT (mounting, flex conduit, support hardware)
+# =============================================================================
+
+GROUND_TRUTH_HARDWARE = {
+    '3/4" Steel Flex': 6,                     # Flex conduit for motor connections
+    '3/4" Liquidtight': 6,                    # Liquidtight metallic flex
+    '3/4" LT Flex Connector': 4,              # 90D LT Flex Conn w/Ins Throat
+    'Core Floor Penetration': 2,              # Core Existing Floor 1" Conduit
+    'T-Bar Conduit Clip': 16,                 # 1/2" T-Bar Wire Conduit Clip
+    '3/8" All Thread': 30,                    # Threaded rod for hangers
+    '3/8" Hex Nut': 30,                       # Hex Nut 3/8" Zinc Plated
+    '3/8" Beam Clamp': 8,                     # Flange Beam Clamp for 3/8" Thrd Rod
+    '12x12x6" Pull Box': 1,                   # Screw Cover Pull Box-Nema 1
+    'Unistrut (Deep)': 8,                     # Deep channel for heavy support
+}
+
+# =============================================================================
+# LABOR & PROJECT TASKS
+# =============================================================================
+
+GROUND_TRUTH_LABOR = {
+    'Wire Termination Labor': 6,              # #14-12-10 Wire Termination Labor
+    'Channel Cut (labor)': 4,                 # Cut 12 Gauge 1-5/8x1-5/8 Channel
+    'Disconnect Elevator Power': 1,           # T0001
+    'Relocate Junction Boxes': 1,             # T0002
+    'Demo "Make Safe"': 1,                    # T0003
+    'Temporary Power & Light': 1,             # T0004
+}
+
+# =============================================================================
 # COMBINED DICTIONARIES
 # =============================================================================
 
@@ -249,6 +279,8 @@ GROUND_TRUTH_DERIVED = {
     **GROUND_TRUTH_WIRE,
     **GROUND_TRUTH_CONSUMABLES,
     **GROUND_TRUTH_ACCESSORIES,
+    **GROUND_TRUTH_HARDWARE,
+    **GROUND_TRUTH_LABOR,
 }
 
 # Everything combined
@@ -295,6 +327,10 @@ def get_category(item: str) -> str:
         return "Consumables"
     elif item in GROUND_TRUTH_ACCESSORIES:
         return "Accessories"
+    elif item in GROUND_TRUTH_HARDWARE:
+        return "Hardware"
+    elif item in GROUND_TRUTH_LABOR:
+        return "Labor & Tasks"
     else:
         return "Unknown"
 

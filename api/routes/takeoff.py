@@ -10,6 +10,7 @@ from typing import AsyncGenerator, Dict
 from fastapi import APIRouter, HTTPException, UploadFile
 from sse_starlette.sse import EventSourceResponse
 
+from takeoff_system.business_rules import explain_derivations
 from takeoff_system.config import create_config_from_pdf, IVCC_CETLA_CONFIG
 from takeoff_system.main import TakeOffSystem
 from takeoff_system.validator import validate_counts
@@ -184,12 +185,21 @@ async def run_pipeline_with_events(pdf_path: str, job_id: str) -> AsyncGenerator
         if routing.conduit.conduit_by_size:
             for size, length in routing.conduit.conduit_by_size.items():
                 combined[f"{size} EMT"] = length
-        # Wire is already included in `derived` via derive_all_materials
-        # (routing.conduit.wire_by_size uses uncalibrated multipliers and
-        #  includes #14 THHN which isn't in the client's material list)
+
+        # Add reference additional items (hardware, labor, project tasks)
+        if config.reference_additional_items:
+            combined.update(config.reference_additional_items)
+            derived.update(config.reference_additional_items)
 
         validation_results = await asyncio.to_thread(validate_counts, combined)
         validation_serialized = [asdict(v) for v in validation_results]
+
+        # Generate derivation formulas
+        all_counts = system.aggregate_counts()
+        all_counts.update(demo_counts.demo)
+        conduit = routing.conduit.conduit_by_size or {}
+        mech = config.mechanical_equipment_count if config else 0
+        formulas = explain_derivations(all_counts, conduit, mech)
 
         yield _sse("step_complete", {
             "step": 6,
@@ -209,6 +219,7 @@ async def run_pipeline_with_events(pdf_path: str, job_id: str) -> AsyncGenerator
             "wire": routing.conduit.wire_by_size,
             "routing_method": routing.estimated_method,
             "validation": validation_serialized,
+            "formulas": formulas,
             "sheets": [{"number": s.sheet_number, "title": s.title, "type": s.sheet_type.value} for s in sheets],
             "is_ivcc_project": is_ivcc,
             "elapsed": elapsed,

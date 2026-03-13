@@ -13,7 +13,7 @@ export interface ValidationItem {
   expected: number
   actual: number
   difference: number
-  status: 'exact' | 'close' | 'miss'
+  status: 'exact' | 'close' | 'acceptable' | 'miss'
 }
 
 export interface TakeoffResults {
@@ -24,6 +24,7 @@ export interface TakeoffResults {
   wire: Record<string, number>
   routing_method: string
   validation: ValidationItem[]
+  formulas?: Record<string, string>
   sheets: { number: string; title: string; type: string }[]
   is_ivcc_project: boolean
   elapsed: number
