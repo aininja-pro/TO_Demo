@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: takeoff-demo
+    runtime: docker
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false  # Set manually in Render dashboard
+      - key: PYTHONUNBUFFERED
+        value: "1"

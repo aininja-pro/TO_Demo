@@ -1,0 +1,15 @@
+.git
+__pycache__
+*.pyc
+.env
+.env.local
+venv/
+.venv/
+node_modules/
+frontend/node_modules/
+takeoff_output/
+*.pdf
+.DS_Store
+.pytest_cache/
+docs/
+*.md

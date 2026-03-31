@@ -200,3 +200,14 @@ The ground truth values in `ground_truth.py` come from the client's actual mater
 2. **Title Block OCR:** Extract sheet numbers from images instead of manual mapping
 3. **Confidence Scores:** Report AI confidence for each count
 4. **Human Review:** Semi-automated workflow with human verification
+
+## Deployment
+
+The app deploys to Render as a single Docker container:
+
+- **Dockerfile** — Multi-stage build: Node builds the React frontend, Python serves both the API and the static SPA
+- **render.yaml** — Render Blueprint defining the `takeoff-demo` web service
+- **api/server.py** — In production (when `frontend/dist` exists), mounts `/assets` as static files and serves `index.html` for all non-API routes
+- **Required env var**: `ANTHROPIC_API_KEY` (set in Render dashboard)
+- **Port**: 10000 (Render default)
+- **System dependency**: `poppler-utils` (installed in Dockerfile for pdf2image)
