@@ -38,7 +38,7 @@ export function MaterialTable({ items, grouped = false, formulas }: MaterialTabl
         </TableHeader>
         <TableBody>
           {groups.map(({ category, items: catItems }) => (
-            <CategoryGroup key={category} category={category} items={catItems} formulas={formulas} />
+            <CategoryGroup key={category} category={category} items={catItems} />
           ))}
         </TableBody>
       </Table>
