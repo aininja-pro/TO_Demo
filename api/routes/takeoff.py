@@ -70,19 +70,8 @@ async def get_results(job_id: str):
     return result
 
 
-async def _run_with_keepalive(coro):
-    """Run a coroutine while yielding keepalive comments every 10s to prevent proxy timeouts."""
-    task = asyncio.ensure_future(coro)
-    while not task.done():
-        await asyncio.sleep(10)
-        if not task.done():
-            yield {"comment": "keepalive"}
-    # Re-raise any exception from the task
-    task.result()
-
-
 async def run_pipeline_with_events(pdf_path: str, job_id: str) -> AsyncGenerator[dict, None]:
-    """Async generator that runs each pipeline step in a thread and yields SSE events."""
+    """Async generator that runs the pipeline and streams step progress via SSE."""
     start_time = time.time()
     current_step = 0
     total_steps = 6
@@ -90,22 +79,31 @@ async def run_pipeline_with_events(pdf_path: str, job_id: str) -> AsyncGenerator
     def _sse(event: str, data: dict) -> dict:
         return {"event": event, "data": json.dumps(data)}
 
-    try:
-        # --- Init: create config + system ---
-        config = await asyncio.to_thread(create_config_from_pdf, pdf_path)
-        output_dir = os.path.join(os.path.dirname(pdf_path), "output")
-        system = TakeOffSystem(output_dir=output_dir, config=config)
+    def _heartbeat() -> dict:
+        return {"event": "heartbeat", "data": json.dumps({"ts": round(time.time() - start_time, 1)})}
 
-        # --- Step 1: PDF Processing ---
+    try:
+        # Yield step_start IMMEDIATELY so Render sees data within seconds
         current_step = 1
         yield _sse("step_start", {"step": 1, "name": "PDF Processing", "total_steps": total_steps})
 
-        # PDF processing is slow (page conversion) — send keepalives to prevent timeout
+        # --- Init: create config (pdfplumber text extraction — fast) ---
+        config_task = asyncio.ensure_future(asyncio.to_thread(create_config_from_pdf, pdf_path))
+        while not config_task.done():
+            await asyncio.sleep(5)
+            if not config_task.done():
+                yield _heartbeat()
+        config = config_task.result()
+        output_dir = os.path.join(os.path.dirname(pdf_path), "output")
+        system = TakeOffSystem(output_dir=output_dir, config=config)
+
+        # --- Step 1: PDF Processing (slow — page-to-image conversion) ---
+        yield _heartbeat()
         process_task = asyncio.ensure_future(asyncio.to_thread(system.process_pdf, pdf_path))
         while not process_task.done():
-            await asyncio.sleep(10)
+            await asyncio.sleep(5)
             if not process_task.done():
-                yield {"comment": "keepalive"}
+                yield _heartbeat()
         sheets = process_task.result()
         is_ivcc = _detect_ivcc_project(sheets)
 
@@ -152,9 +150,9 @@ async def run_pipeline_with_events(pdf_path: str, job_id: str) -> AsyncGenerator
             lambda: system.count_all_sheets(use_pdf_extraction=True)
         ))
         while not count_task.done():
-            await asyncio.sleep(10)
+            await asyncio.sleep(5)
             if not count_task.done():
-                yield {"comment": "keepalive"}
+                yield _heartbeat()
         new_counts, demo_counts = count_task.result()
         all_counts = system.aggregate_counts()
         yield _sse("step_complete", {

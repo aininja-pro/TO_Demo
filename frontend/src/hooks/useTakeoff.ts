@@ -46,6 +46,9 @@ export function useTakeoff() {
   const connectSSE = useCallback((jobId: string) => {
     const evtSource = new EventSource(`/api/takeoff/${jobId}/stream`)
 
+    // Heartbeat events keep connection alive — just ignore them
+    evtSource.addEventListener('heartbeat', () => {})
+
     evtSource.addEventListener('step_start', (e) => {
       const data = JSON.parse(e.data)
       setCurrentStep(data.step)
