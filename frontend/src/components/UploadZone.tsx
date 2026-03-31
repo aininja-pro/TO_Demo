@@ -1,6 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
-import { Upload, FileText, FileSearch, Cpu, ClipboardList, Target, Timer, BarChart3 } from 'lucide-react'
-import { Card, CardContent } from '@/components/ui/card'
+import { Upload, FileText, ArrowRight, Cpu, ClipboardList, Scan } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface UploadZoneProps {
@@ -48,54 +47,53 @@ export function UploadZone({ onUpload, isUploading }: UploadZoneProps) {
   }, [handleFile])
 
   return (
-    <div className="flex flex-col items-center gap-10">
-      {/* Hero section */}
-      <div className="text-center max-w-2xl">
-        <h2 className="text-3xl font-bold text-gray-900 tracking-tight">
+    <div className="flex flex-col items-center gap-12 pt-8">
+      {/* Hero */}
+      <div className="text-center max-w-xl">
+        <h2 className="text-2xl font-semibold text-foreground tracking-tight">
           Electrical Takeoff in Under 60 Seconds
         </h2>
-        <p className="mt-3 text-lg text-gray-600">
-          Upload your electrical drawings. Our AI extracts every fixture, device, and circuit —
-          then derives all supporting materials automatically.
+        <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
+          Upload your electrical drawings. AI extracts every fixture, device, and circuit — then derives all supporting materials automatically.
         </p>
-        <p className="mt-2 text-sm text-[#2563eb] font-medium">
-          Calibrated with your historical bid data for maximum accuracy
+        <p className="mt-2 text-xs text-primary font-medium tracking-wide">
+          Calibrated with historical bid data for maximum accuracy
         </p>
       </div>
 
       {/* Upload zone */}
-      <Card
-        className={`w-full max-w-xl cursor-pointer border-2 border-dashed transition-all duration-200 ${
+      <div
+        className={`w-full max-w-lg cursor-pointer border transition-all duration-150 rounded-sm ${
           isDragging
-            ? 'border-[#2563eb] bg-blue-50 scale-[1.02] shadow-lg'
+            ? 'border-primary bg-primary/5'
             : file
-              ? 'border-[#2563eb]/40 bg-blue-50/50'
-              : 'border-gray-300 hover:border-gray-400 hover:shadow-md'
+              ? 'border-primary/40 bg-primary/5'
+              : 'border-border border-dashed hover:border-muted-foreground/40'
         }`}
         onClick={() => inputRef.current?.click()}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
       >
-        <CardContent className="flex flex-col items-center gap-3 py-14">
+        <div className="flex flex-col items-center gap-3 py-12 px-6">
           {file ? (
             <>
-              <div className="bg-blue-100 rounded-full p-3">
-                <FileText className="h-8 w-8 text-[#2563eb]" />
+              <FileText className="h-7 w-7 text-primary" />
+              <div className="text-center">
+                <p className="text-sm font-medium text-foreground">{file.name}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{formatSize(file.size)}</p>
               </div>
-              <p className="text-base font-medium text-gray-900">{file.name}</p>
-              <p className="text-sm text-muted-foreground">{formatSize(file.size)}</p>
             </>
           ) : (
             <>
-              <div className="bg-gray-100 rounded-full p-3">
-                <Upload className="h-8 w-8 text-gray-400" />
+              <Upload className="h-6 w-6 text-muted-foreground" />
+              <div className="text-center">
+                <p className="text-sm text-foreground">Drop electrical drawings PDF here</p>
+                <p className="text-xs text-muted-foreground mt-0.5">or click to browse</p>
               </div>
-              <p className="text-base font-medium text-gray-700">Drop electrical drawings PDF here</p>
-              <p className="text-sm text-muted-foreground">or click to browse</p>
             </>
           )}
-        </CardContent>
+        </div>
         <input
           ref={inputRef}
           type="file"
@@ -103,49 +101,54 @@ export function UploadZone({ onUpload, isUploading }: UploadZoneProps) {
           className="hidden"
           onChange={handleInputChange}
         />
-      </Card>
+      </div>
 
       {file && (
         <Button
           size="lg"
-          className="bg-[#2563eb] hover:bg-[#1d4ed8] text-white px-10 py-6 text-base shadow-lg hover:shadow-xl transition-all"
+          className="px-8 gap-2"
           onClick={() => onUpload(file)}
           disabled={isUploading}
         >
           {isUploading ? 'Uploading...' : 'Run Takeoff'}
+          {!isUploading && <ArrowRight className="h-4 w-4" />}
         </Button>
       )}
 
       {/* How it works */}
-      <div className="w-full max-w-3xl">
-        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider text-center mb-5">How It Works</h3>
-        <div className="grid grid-cols-3 gap-6">
+      <div className="w-full max-w-2xl">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="h-px flex-1 bg-border" />
+          <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest">How It Works</span>
+          <div className="h-px flex-1 bg-border" />
+        </div>
+        <div className="grid grid-cols-3 gap-8">
           <StepInfo
-            icon={<FileSearch className="h-6 w-6 text-[#2563eb]" />}
-            step="1"
+            icon={<Scan className="h-4 w-4" />}
+            step="01"
             title="Upload Drawings"
             desc="Drop your full plan set PDF — legends, schedules, floor plans"
           />
           <StepInfo
-            icon={<Cpu className="h-6 w-6 text-[#2563eb]" />}
-            step="2"
+            icon={<Cpu className="h-4 w-4" />}
+            step="02"
             title="AI Analyzes"
             desc="Reads schedules, counts symbols, calculates routing & materials"
           />
           <StepInfo
-            icon={<ClipboardList className="h-6 w-6 text-[#2563eb]" />}
-            step="3"
+            icon={<ClipboardList className="h-4 w-4" />}
+            step="03"
             title="Material List"
-            desc="101 line items across 16 categories, ready to price"
+            desc="119 line items across 18 categories, ready to price"
           />
         </div>
       </div>
 
       {/* Stats */}
-      <div className="flex gap-5">
-        <StatCard icon={<Target className="h-5 w-5 text-green-600" />} value="100%" label="Accuracy" />
-        <StatCard icon={<Timer className="h-5 w-5 text-[#2563eb]" />} value="< 60s" label="Process Time" />
-        <StatCard icon={<BarChart3 className="h-5 w-5 text-amber-600" />} value="101" label="Line Items" />
+      <div className="flex gap-px bg-border rounded-sm overflow-hidden border border-border">
+        <StatCard value="100%" label="Accuracy" />
+        <StatCard value="< 60s" label="Process Time" />
+        <StatCard value="119" label="Line Items" />
       </div>
     </div>
   )
@@ -153,25 +156,22 @@ export function UploadZone({ onUpload, isUploading }: UploadZoneProps) {
 
 function StepInfo({ icon, step, title, desc }: { icon: React.ReactNode; step: string; title: string; desc: string }) {
   return (
-    <div className="flex flex-col items-center text-center gap-2.5">
-      <div className="relative">
-        <div className="bg-blue-50 rounded-xl p-3">{icon}</div>
-        <span className="absolute -top-1.5 -right-1.5 bg-[#2563eb] text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">{step}</span>
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-2">
+        <span className="text-primary">{icon}</span>
+        <span className="text-[10px] font-mono text-muted-foreground">{step}</span>
       </div>
-      <h4 className="font-semibold text-gray-900 text-sm">{title}</h4>
-      <p className="text-xs text-gray-500 leading-relaxed">{desc}</p>
+      <h4 className="text-xs font-semibold text-foreground">{title}</h4>
+      <p className="text-[11px] text-muted-foreground leading-relaxed">{desc}</p>
     </div>
   )
 }
 
-function StatCard({ icon, value, label }: { icon: React.ReactNode; value: string; label: string }) {
+function StatCard({ value, label }: { value: string; label: string }) {
   return (
-    <Card className="w-40 hover:shadow-md transition-shadow">
-      <CardContent className="pt-5 pb-4 flex flex-col items-center gap-1.5">
-        {icon}
-        <span className="text-xl font-bold font-mono tabular-nums text-gray-900">{value}</span>
-        <span className="text-xs text-muted-foreground">{label}</span>
-      </CardContent>
-    </Card>
+    <div className="bg-card px-8 py-4 flex flex-col items-center gap-1">
+      <span className="text-lg font-semibold font-mono tabular-nums text-foreground">{value}</span>
+      <span className="text-[9px] text-muted-foreground uppercase tracking-widest font-medium">{label}</span>
+    </div>
   )
 }

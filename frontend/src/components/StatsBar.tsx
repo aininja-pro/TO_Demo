@@ -1,4 +1,3 @@
-import { Card, CardContent } from '@/components/ui/card'
 import { BarChart3, Clock, Layers, GitBranch, Target, PieChart } from 'lucide-react'
 import type { TakeoffResults } from '@/lib/types'
 
@@ -7,10 +6,8 @@ interface StatsBarProps {
 }
 
 export function StatsBar({ results }: StatsBarProps) {
-  // Total = unique items validated against ground truth
   const totalValidation = results.validation?.length ?? 0
   const totalItems = totalValidation || Object.keys(results.materials).length
-  // Counted = materials minus derived minus demo (the items extracted from plans/schedules)
   const derivedKeys = new Set(Object.keys(results.derived_materials))
   const demoKeys = new Set(Object.keys(results.demo_items))
   const countedItems = Object.keys(results.materials).filter(k => !derivedKeys.has(k) && !demoKeys.has(k)).length
@@ -21,41 +18,16 @@ export function StatsBar({ results }: StatsBarProps) {
   const accuracyPct = totalValidation > 0 ? Math.round((exactMatches / totalValidation) * 100) : null
 
   return (
-    <div className="grid grid-cols-4 md:grid-cols-7 gap-3">
-      <Stat
-        icon={<BarChart3 className="h-4 w-4 text-[#2563eb]" />}
-        label="Total Items"
-        value={totalItems}
-      />
-      <Stat
-        icon={<Clock className="h-4 w-4 text-amber-600" />}
-        label="Process Time"
-        value={`${results.elapsed}s`}
-      />
-      <Stat
-        icon={<Layers className="h-4 w-4 text-purple-600" />}
-        label="Counted"
-        value={countedItems}
-      />
-      <Stat
-        icon={<PieChart className="h-4 w-4 text-teal-600" />}
-        label="Derived"
-        value={derivedItems}
-      />
-      <Stat
-        icon={<Layers className="h-4 w-4 text-red-500" />}
-        label="Demo"
-        value={demoItems}
-      />
-      <Stat
-        icon={<GitBranch className="h-4 w-4 text-gray-600" />}
-        label="Routing"
-        value={results.routing_method?.replace(/_/g, ' ') || '—'}
-        small
-      />
+    <div className="grid grid-cols-4 md:grid-cols-7 gap-px bg-border rounded-sm overflow-hidden border border-border">
+      <Stat icon={<BarChart3 className="h-3.5 w-3.5" />} label="Items" value={totalItems} />
+      <Stat icon={<Clock className="h-3.5 w-3.5" />} label="Time" value={`${results.elapsed}s`} />
+      <Stat icon={<Layers className="h-3.5 w-3.5" />} label="Counted" value={countedItems} />
+      <Stat icon={<PieChart className="h-3.5 w-3.5" />} label="Derived" value={derivedItems} />
+      <Stat icon={<Layers className="h-3.5 w-3.5" />} label="Demo" value={demoItems} />
+      <Stat icon={<GitBranch className="h-3.5 w-3.5" />} label="Routing" value={results.routing_method?.replace(/_/g, ' ') || '—'} small />
       {accuracyPct !== null && (
         <Stat
-          icon={<Target className="h-4 w-4 text-green-600" />}
+          icon={<Target className="h-3.5 w-3.5" />}
           label="Accuracy"
           value={`${accuracyPct}%`}
           highlight={accuracyPct === 100}
@@ -73,14 +45,14 @@ function Stat({ icon, label, value, small, highlight }: {
   highlight?: boolean
 }) {
   return (
-    <Card className={highlight ? 'ring-2 ring-green-200 bg-green-50/50' : ''}>
-      <CardContent className="pt-3 pb-2.5 flex flex-col items-center gap-1">
+    <div className={`bg-card px-3 py-3 flex flex-col items-center gap-1 ${highlight ? 'bg-primary/5' : ''}`}>
+      <div className={`${highlight ? 'text-primary' : 'text-muted-foreground'}`}>
         {icon}
-        <div className={`font-semibold font-mono tabular-nums ${small ? 'text-sm' : 'text-xl'} ${highlight ? 'text-green-700' : ''}`}>
-          {value}
-        </div>
-        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</div>
-      </CardContent>
-    </Card>
+      </div>
+      <div className={`font-mono tabular-nums font-semibold ${small ? 'text-xs' : 'text-lg'} ${highlight ? 'text-primary' : 'text-foreground'}`}>
+        {value}
+      </div>
+      <div className="text-[9px] text-muted-foreground uppercase tracking-widest font-medium">{label}</div>
+    </div>
   )
 }

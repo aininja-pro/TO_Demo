@@ -6,17 +6,17 @@ interface HeaderProps {
 
 export function Header({ children }: HeaderProps) {
   return (
-    <header className="bg-gradient-to-r from-[#1e3a5f] to-[#2d5a8e] text-white px-6 py-4 flex items-center justify-between shadow-md">
+    <header className="bg-card border-b border-border px-6 py-3 flex items-center justify-between">
       <div className="flex items-center gap-2.5">
-        <div className="bg-white/15 rounded-lg p-1.5">
-          <Zap className="h-5 w-5 text-amber-300" />
+        <div className="text-primary">
+          <Zap className="h-4.5 w-4.5" />
         </div>
-        <div>
-          <h1 className="text-lg font-semibold tracking-tight leading-tight">MEP Takeoff Pro</h1>
-          <p className="text-[11px] text-white/60 font-medium tracking-wide uppercase">Automated Electrical Estimating</p>
+        <div className="flex items-baseline gap-2">
+          <h1 className="text-sm font-semibold tracking-tight text-foreground">MEP Takeoff Pro</h1>
+          <span className="text-[10px] text-muted-foreground font-medium tracking-widest uppercase">Electrical Estimating</span>
         </div>
       </div>
-      {children && <div className="flex items-center gap-3">{children}</div>}
+      {children && <div className="flex items-center gap-2">{children}</div>}
     </header>
   )
 }

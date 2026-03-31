@@ -7,20 +7,25 @@ interface StepCardProps {
 
 export function StepCard({ step }: StepCardProps) {
   return (
-    <div className={`flex items-center gap-3 py-3 transition-opacity ${
-      step.status === 'pending' ? 'opacity-40' : 'opacity-100'
+    <div className={`flex items-center gap-3 px-4 py-2.5 transition-opacity ${
+      step.status === 'pending' ? 'opacity-50' : 'opacity-100'
     }`}>
       <StepIcon status={step.status} />
       <div className="flex-1 min-w-0">
-        <span className={`text-sm ${step.status === 'active' ? 'font-semibold text-[#2563eb]' : step.status === 'complete' ? 'text-gray-700' : 'text-gray-400'}`}>
-          Step {step.step}: {step.name}
+        <span className={`text-xs font-medium ${
+          step.status === 'active' ? 'text-primary' :
+          step.status === 'complete' ? 'text-foreground' :
+          'text-muted-foreground'
+        }`}>
+          <span className="font-mono text-muted-foreground mr-1.5">{String(step.step).padStart(2, '0')}</span>
+          {step.name}
         </span>
         {step.status === 'complete' && step.result && (
-          <p className="text-xs text-green-700 mt-0.5">{formatResult(step.result)}</p>
+          <p className="text-[10px] text-primary/70 mt-0.5 font-mono">{formatResult(step.result)}</p>
         )}
       </div>
       {step.status === 'active' && (
-        <span className="text-xs text-[#2563eb] font-medium animate-pulse">Processing...</span>
+        <span className="text-[10px] text-primary font-mono animate-pulse tracking-wider">PROCESSING</span>
       )}
     </div>
   )
@@ -29,13 +34,13 @@ export function StepCard({ step }: StepCardProps) {
 function StepIcon({ status }: { status: PipelineStep['status'] }) {
   switch (status) {
     case 'complete':
-      return <CheckCircle className="h-5 w-5 text-green-600 shrink-0" />
+      return <CheckCircle className="h-4 w-4 text-primary shrink-0" />
     case 'active':
-      return <Loader2 className="h-5 w-5 text-[#2563eb] animate-spin shrink-0" />
+      return <Loader2 className="h-4 w-4 text-primary animate-spin shrink-0" />
     case 'error':
-      return <AlertCircle className="h-5 w-5 text-red-600 shrink-0" />
+      return <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
     default:
-      return <Circle className="h-5 w-5 text-gray-300 shrink-0" />
+      return <Circle className="h-4 w-4 text-muted-foreground/30 shrink-0" />
   }
 }
 

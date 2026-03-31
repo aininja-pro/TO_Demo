@@ -28,23 +28,23 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8fafc]">
+    <div className="min-h-screen bg-background">
       <Header>
         {state === 'results' && (
           <Button
             variant="outline"
             size="sm"
-            className="text-white border-white/30 hover:bg-white/10 gap-1.5"
             onClick={reset}
+            className="gap-1.5"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             New Takeoff
           </Button>
         )}
       </Header>
-      <main className={`mx-auto px-6 py-10 ${state === 'results' ? 'max-w-7xl' : 'max-w-6xl'}`}>
+      <main className={`mx-auto px-6 py-8 ${state === 'results' ? 'max-w-7xl' : 'max-w-5xl'}`}>
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-center">
+          <div className="mb-6 p-3 bg-destructive/10 border border-destructive/30 rounded-sm text-destructive text-sm text-center">
             {error}
           </div>
         )}

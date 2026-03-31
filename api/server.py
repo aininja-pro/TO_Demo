@@ -13,6 +13,10 @@ app = FastAPI(title="MEP Takeoff Pro API")
 
 # CORS — allow local dev and any configured origin
 cors_origins = os.environ.get("CORS_ORIGINS", "http://localhost:5173,http://localhost:5180").split(",")
+render_url = os.environ.get("RENDER_EXTERNAL_URL")
+if render_url:
+    cors_origins.append(render_url)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,

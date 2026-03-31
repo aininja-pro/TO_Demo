@@ -25,7 +25,6 @@ export function ResultsDashboard({ results }: ResultsDashboardProps) {
       case 'derived':
         return results.derived_materials
       default:
-        // For 'fixtures', 'controls', 'power', 'technology' — filter from counted materials
         return filterBySimpleCategory(results.materials, category)
     }
   }
@@ -62,7 +61,7 @@ export function ResultsDashboard({ results }: ResultsDashboardProps) {
   const hasValidation = results.validation && results.validation.length > 0
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-5">
       <StatsBar results={results} />
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as MaterialCategory)}>
@@ -72,17 +71,17 @@ export function ResultsDashboard({ results }: ResultsDashboardProps) {
               <TabsTrigger key={t.value} value={t.value}>{t.label}</TabsTrigger>
             ))}
             {hasValidation && (
-              <TabsTrigger value="accuracy" className="text-green-700 data-[state=active]:text-green-800">
+              <TabsTrigger value="accuracy">
                 Accuracy
               </TabsTrigger>
             )}
           </TabsList>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={exportCsv} className="gap-1.5 text-xs">
+          <div className="flex items-center gap-1.5">
+            <Button variant="ghost" size="sm" onClick={exportCsv} className="gap-1.5 text-xs text-muted-foreground">
               <Download className="h-3.5 w-3.5" />
               CSV
             </Button>
-            <Button variant="outline" size="sm" onClick={printReport} className="gap-1.5 text-xs">
+            <Button variant="ghost" size="sm" onClick={printReport} className="gap-1.5 text-xs text-muted-foreground">
               <Printer className="h-3.5 w-3.5" />
               Print
             </Button>
@@ -113,8 +112,8 @@ export function ResultsDashboard({ results }: ResultsDashboardProps) {
       </Tabs>
 
       {/* Pricing CTA */}
-      <div className="text-center py-4 border border-dashed border-gray-300 rounded-lg bg-gray-50/50">
-        <p className="text-sm text-gray-500">
+      <div className="text-center py-3 border border-dashed border-border rounded-sm">
+        <p className="text-xs text-muted-foreground">
           Unit pricing columns available when connected to your pricing database
         </p>
       </div>
