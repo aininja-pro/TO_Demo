@@ -99,7 +99,8 @@ async def run_pipeline_with_events(pdf_path: str, job_id: str) -> AsyncGenerator
 
         # --- Step 1: PDF Processing (slow — page-to-image conversion) ---
         yield _heartbeat()
-        process_task = asyncio.ensure_future(asyncio.to_thread(system.process_pdf, pdf_path))
+        # Use 150 DPI to reduce memory (512MB Render limit). Still readable for vision.
+        process_task = asyncio.ensure_future(asyncio.to_thread(system.process_pdf, pdf_path, 150))
         while not process_task.done():
             await asyncio.sleep(5)
             if not process_task.done():

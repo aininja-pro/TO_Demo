@@ -61,15 +61,26 @@ def extract_pages_from_pdf(pdf_path: str, output_dir: str, dpi: int = 200) -> Li
 
     os.makedirs(output_dir, exist_ok=True)
 
-    # Convert PDF to images
-    images = convert_from_path(pdf_path, dpi=dpi)
+    # Get page count first (lightweight — no image conversion)
+    import pdfplumber
+    with pdfplumber.open(pdf_path) as pdf:
+        page_count = len(pdf.pages)
 
+    # Convert one page at a time to keep memory under control.
+    # convert_from_path loads all requested pages into RAM simultaneously,
+    # so processing all at once can OOM on memory-constrained servers.
     image_paths = []
-    for i, image in enumerate(images, 1):
-        image_path = os.path.join(output_dir, f"page-{i:02d}.png")
-        image.save(image_path, "PNG")
+    for page_num in range(1, page_count + 1):
+        page_images = convert_from_path(
+            pdf_path, dpi=dpi,
+            first_page=page_num, last_page=page_num,
+        )
+        image_path = os.path.join(output_dir, f"page-{page_num:02d}.png")
+        page_images[0].save(image_path, "PNG")
         image_paths.append(image_path)
-        print(f"Extracted page {i} -> {image_path}")
+        # Free memory immediately
+        del page_images
+        print(f"Extracted page {page_num}/{page_count} -> {image_path}")
 
     return image_paths
 
