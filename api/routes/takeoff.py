@@ -70,6 +70,17 @@ async def get_results(job_id: str):
     return result
 
 
+async def _run_with_keepalive(coro):
+    """Run a coroutine while yielding keepalive comments every 10s to prevent proxy timeouts."""
+    task = asyncio.ensure_future(coro)
+    while not task.done():
+        await asyncio.sleep(10)
+        if not task.done():
+            yield {"comment": "keepalive"}
+    # Re-raise any exception from the task
+    task.result()
+
+
 async def run_pipeline_with_events(pdf_path: str, job_id: str) -> AsyncGenerator[dict, None]:
     """Async generator that runs each pipeline step in a thread and yields SSE events."""
     start_time = time.time()
@@ -88,7 +99,14 @@ async def run_pipeline_with_events(pdf_path: str, job_id: str) -> AsyncGenerator
         # --- Step 1: PDF Processing ---
         current_step = 1
         yield _sse("step_start", {"step": 1, "name": "PDF Processing", "total_steps": total_steps})
-        sheets = await asyncio.to_thread(system.process_pdf, pdf_path)
+
+        # PDF processing is slow (page conversion) — send keepalives to prevent timeout
+        process_task = asyncio.ensure_future(asyncio.to_thread(system.process_pdf, pdf_path))
+        while not process_task.done():
+            await asyncio.sleep(10)
+            if not process_task.done():
+                yield {"comment": "keepalive"}
+        sheets = process_task.result()
         is_ivcc = _detect_ivcc_project(sheets)
 
         # If IVCC project detected, reinitialize with calibrated config
@@ -130,9 +148,14 @@ async def run_pipeline_with_events(pdf_path: str, job_id: str) -> AsyncGenerator
         # --- Step 3: Count Symbols ---
         current_step = 3
         yield _sse("step_start", {"step": 3, "name": "Counting Symbols", "total_steps": total_steps})
-        new_counts, demo_counts = await asyncio.to_thread(
+        count_task = asyncio.ensure_future(asyncio.to_thread(
             lambda: system.count_all_sheets(use_pdf_extraction=True)
-        )
+        ))
+        while not count_task.done():
+            await asyncio.sleep(10)
+            if not count_task.done():
+                yield {"comment": "keepalive"}
+        new_counts, demo_counts = count_task.result()
         all_counts = system.aggregate_counts()
         yield _sse("step_complete", {
             "step": 3,
