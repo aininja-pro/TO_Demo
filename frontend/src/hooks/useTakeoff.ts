@@ -89,8 +89,10 @@ export function useTakeoff() {
       const { job_id } = await uploadPdf(file)
       setIsUploading(false)
       setState('processing')
-      setSteps(PIPELINE_STEPS.map(s => ({ ...s, status: 'pending' })))
-      setCurrentStep(0)
+      setSteps(PIPELINE_STEPS.map(s =>
+        s.step === 1 ? { ...s, status: 'active' } : { ...s, status: 'pending' }
+      ))
+      setCurrentStep(1)
       setElapsedTime(0)
       startTimer()
       connectSSE(job_id)
