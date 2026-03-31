@@ -50,7 +50,7 @@ export function MaterialTable({ items, grouped = false, formulas }: MaterialTabl
   )
 }
 
-function CategoryGroup({ category, items, formulas }: {
+function CategoryGroup({ category, items, formulas: _formulas }: {
   category: string
   items: [string, number][]
   formulas?: Record<string, string>
