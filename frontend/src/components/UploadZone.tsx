@@ -51,7 +51,7 @@ export function UploadZone({ onUpload, isUploading }: UploadZoneProps) {
       {/* Hero */}
       <div className="text-center max-w-xl">
         <h2 className="text-2xl font-semibold text-foreground tracking-tight">
-          Electrical Takeoff in Under 60 Seconds
+          Electrical Takeoff in Minutes, Not Days
         </h2>
         <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
           Upload your electrical drawings. AI extracts every fixture, device, and circuit — then derives all supporting materials automatically.
@@ -147,7 +147,7 @@ export function UploadZone({ onUpload, isUploading }: UploadZoneProps) {
       {/* Stats */}
       <div className="flex gap-px bg-border rounded-sm overflow-hidden border border-border">
         <StatCard value="100%" label="Accuracy" />
-        <StatCard value="< 60s" label="Process Time" />
+        <StatCard value="~ 3min" label="Process Time" />
         <StatCard value="119" label="Line Items" />
       </div>
     </div>
